@@ -1,0 +1,61 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Project Structure Guide
+
+## Overview
+This project is a game application with a clear separation between backend and frontend components:
+
+- Backend: Python-based game logic server
+- Frontend: Web-based user interface
+- API Contract: Shared API specifications
+
+## Directory Structure
+
+```
+/
+├── backend/           # Python game server
+│   ├── src/          # Source code
+│   ├── tests/        # Unit tests
+│   └── requirements.txt
+├── frontend/         # Web frontend
+│   ├── src/         # Source code
+│   ├── public/      # Static assets
+│   └── package.json
+└── api-contract/    # Shared API specifications
+    └── openapi.yaml # OpenAPI/Swagger specification
+```
+
+## Component Responsibilities
+
+### Backend (Python)
+- Game state management
+- Game logic implementation
+- RESTful API endpoints
+- Data persistence
+- Game session handling
+
+### Frontend (Web)
+- User interface rendering
+- Game state visualization
+- User input handling
+- API communication with backend
+- Real-time updates
+
+### API Contract
+- Defines all available endpoints
+- Documents request/response formats
+- Specifies data models
+- Version control for API changes
+
+## Development Guidelines
+
+1. Backend and frontend should be developed and tested independently
+2. All API changes must be documented in the api-contract
+3. Use semantic versioning for both components
+4. Maintain comprehensive test coverage
+5. Follow language-specific best practices:
+   - Python: PEP 8 style guide
+   - Frontend: Framework-specific conventions

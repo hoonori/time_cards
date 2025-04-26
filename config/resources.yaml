@@ -1,0 +1,34 @@
+# Life resources that can be managed
+resources:
+  money:
+    name: "Money"
+    description: "Financial resources"
+    initial_amount: 1000
+    max_amount: 999999
+    min_amount: -10000  # Can go into debt
+  
+  energy:
+    name: "Energy"
+    description: "Physical and mental energy"
+    initial_amount: 100
+    max_amount: 100
+    min_amount: 0
+    
+  skill:
+    name: "Skills"
+    description: "Professional and personal abilities"
+    initial_amount: 10
+    max_amount: 100
+    
+  network:
+    name: "Network"
+    description: "Social connections and relationships"
+    initial_amount: 5
+    max_amount: 100
+    
+  happiness:
+    name: "Happiness"
+    description: "Overall life satisfaction"
+    initial_amount: 50
+    max_amount: 100
+    min_amount: 0  # If reaches 0, burnout/depression (game over) 

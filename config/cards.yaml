@@ -1,0 +1,1778 @@
+# Starting cards and their branching paths
+cards:
+  mysterious_letter:
+    title: "A Mysterious Letter"
+    description: "You receive a strange letter written in an unknown script"
+    drawed_at: 0  # Starting card
+    priority: 1
+    choices:
+      - description: "Try to decipher it yourself"
+        requirements:
+          resources:
+            sanity: 10
+        effects:
+          resources:
+            sanity: -5
+            knowledge: 2
+          next_cards:
+            - card: "strange_symbols"
+              time_offset: 10
+            - card: "headache"
+              time_offset: 5
+              
+      - description: "Seek help from a scholar"
+        requirements:
+          resources:
+            gold: 50
+        effects:
+          resources:
+            gold: -50
+            knowledge: 5
+          next_cards:
+            - card: "scholar_interest"
+              time_offset: 15
+              
+      - description: "Burn the letter"
+        effects:
+          resources:
+            sanity: 5
+          next_cards:
+            - card: "mysterious_ashes"
+              time_offset: 3
+
+  headache:
+    title: "Splitting Headache"
+    description: "Your head throbs as you try to understand the strange symbols"
+    priority: 1
+    choices:
+      - description: "Take a break and rest"
+        effects:
+          resources:
+            sanity: 5
+            knowledge: -1
+          next_cards:
+            - card: "refreshed_mind"
+              time_offset: 10
+      
+      - description: "Push through the pain"
+        requirements:
+          resources:
+            sanity: 15
+        effects:
+          resources:
+            sanity: -10
+            knowledge: 5
+          next_cards:
+            - card: "breakthrough"
+              time_offset: 8
+
+  refreshed_mind:
+    title: "Refreshed Mind"
+    description: "After some rest, your mind feels clearer"
+    priority: 1
+    choices:
+      - description: "Return to your studies"
+        effects:
+          resources:
+            knowledge: 2
+          next_cards:
+            - card: "strange_symbols"
+              time_offset: 5
+      
+      - description: "Take a longer break"
+        effects:
+          resources:
+            sanity: 10
+            gold: -10  # Cost of taking time off
+          next_cards:
+            - card: "lost_momentum"
+              time_offset: 15
+
+  breakthrough:
+    title: "Sudden Breakthrough"
+    description: "The symbols start making an eerie kind of sense"
+    priority: 1
+    choices:
+      - description: "Document your findings"
+        effects:
+          resources:
+            knowledge: 8
+            gold: -20  # Cost of materials
+          next_cards:
+            - card: "forbidden_insight"
+              time_offset: 10
+      
+      - description: "Share with fellow scholars"
+        requirements:
+          resources:
+            gold: 30
+        effects:
+          resources:
+            gold: -30
+            knowledge: 5
+            cultists: 2  # Some scholars join your cause
+          next_cards:
+            - card: "academic_interest"
+              time_offset: 20
+
+  strange_symbols:
+    title: "Strange Symbols"
+    description: "The symbols from the letter start appearing in your dreams"
+    priority: 2
+    choices:
+      - description: "Study them intensely"
+        requirements:
+          resources:
+            sanity: 20
+        effects:
+          resources:
+            sanity: -10
+            knowledge: 10
+          relics:
+            gain:
+              - ancient_tome
+          next_cards:
+            - card: "forbidden_insight"
+              time_offset: 20
+              
+      - description: "Try to forget them"
+        effects:
+          resources:
+            knowledge: -5
+            sanity: 15
+          next_cards:
+            - card: "recurring_dreams"
+              time_offset: 30
+
+  forbidden_insight:
+    title: "Forbidden Insight"
+    description: "You begin to understand things no mortal should know"
+    priority: 1
+    choices:
+      - description: "Embrace the knowledge"
+        requirements:
+          resources:
+            sanity: 30
+        effects:
+          resources:
+            sanity: -20
+            knowledge: 20
+          relics:
+            gain:
+              - cursed_coin
+          next_cards:
+            - card: "dark_revelation"
+              time_offset: 15
+      
+      - description: "Try to suppress it"
+        effects:
+          resources:
+            knowledge: -10
+            sanity: 10
+          next_cards:
+            - card: "lingering_thoughts"
+              time_offset: 25
+
+  recurring_dreams:
+    title: "Recurring Dreams"
+    description: "The symbols haunt your dreams, refusing to be forgotten"
+    priority: 1
+    choices:
+      - description: "Visit a dream interpreter"
+        requirements:
+          resources:
+            gold: 40
+        effects:
+          resources:
+            gold: -40
+            knowledge: 8
+            sanity: -5
+          next_cards:
+            - card: "dream_meaning"
+              time_offset: 10
+      
+      - description: "Take sleeping medicine"
+        requirements:
+          resources:
+            gold: 20
+        effects:
+          resources:
+            gold: -20
+            sanity: 15
+          next_cards:
+            - card: "dreamless_sleep"
+              time_offset: 20
+
+  scholar_interest:
+    title: "Scholar's Interest"
+    description: "The scholar seems unusually interested in your letter"
+    priority: 1
+    choices:
+      - description: "Accept their help"
+        requirements:
+          resources:
+            gold: 100
+        effects:
+          resources:
+            gold: -100
+            knowledge: 15
+            cultists: 1  # The scholar joins your cause
+          relics:
+            gain:
+              - dark_mirror
+          next_cards:
+            - card: "secret_society"
+              time_offset: 25
+              
+      - description: "Decline politely"
+        effects:
+          next_cards:
+            - card: "scholar_suspicion"
+              time_offset: 10
+
+  scholar_suspicion:
+    title: "Scholar's Suspicion"
+    description: "The scholar seems to be watching you closely"
+    priority: 1
+    choices:
+      - description: "Lay low for a while"
+        effects:
+          resources:
+            gold: -30  # Cost of keeping quiet
+            sanity: 5
+          next_cards:
+            - card: "coast_clear"
+              time_offset: 30
+      
+      - description: "Confront them"
+        requirements:
+          resources:
+            cultists: 2
+        effects:
+          resources:
+            cultists: -1  # One cultist lost in confrontation
+          next_cards:
+            - card: "forced_cooperation"
+              time_offset: 15
+
+  mysterious_ashes:
+    title: "Mysterious Ashes"
+    description: "The ashes of the letter seem to shimmer with an otherworldly glow"
+    priority: 1
+    choices:
+      - description: "Examine the ashes"
+        effects:
+          resources:
+            sanity: -5
+            knowledge: 3
+          next_cards:
+            - card: "glowing_residue"
+              time_offset: 5
+      
+      - description: "Dispose of them"
+        effects:
+          resources:
+            sanity: 5
+          next_cards:
+            - card: "neighbor_intro"
+              time_offset: 10
+
+  whispering_ashes:
+    title: "Whispering Ashes"
+    description: "The ashes in the jar seem to whisper secrets"
+    priority: 1
+    choices:
+      - description: "Listen carefully"
+        requirements:
+          resources:
+            sanity: 25
+        effects:
+          resources:
+            sanity: -15
+            knowledge: 12
+          next_cards:
+            - card: "ash_secrets"
+              time_offset: 20
+      
+      - description: "Sell the jar"
+        effects:
+          resources:
+            gold: 50
+            sanity: 5
+          next_cards:
+            - card: "collector_interest"
+              time_offset: 30
+
+  strange_winds:
+    title: "Strange Winds"
+    description: "The winds carry whispers of forgotten knowledge"
+    priority: 1
+    choices:
+      - description: "Follow the winds"
+        requirements:
+          resources:
+            sanity: 15
+        effects:
+          resources:
+            sanity: -8
+            knowledge: 6
+          next_cards:
+            - card: "hidden_place"
+              time_offset: 25
+      
+      - description: "Return home"
+        effects:
+          resources:
+            sanity: 10
+          next_cards:
+            - card: "uneasy_dreams"
+              time_offset: 20
+
+# Adding remaining referenced cards at the end of the file
+
+  lost_momentum:
+    title: "Lost Momentum"
+    description: "Your extended break has dulled your understanding"
+    priority: 1
+    choices:
+      - description: "Start fresh"
+        effects:
+          resources:
+            knowledge: 3
+          next_cards:
+            - card: "strange_symbols"
+              time_offset: 10
+      
+      - description: "Give up for now"
+        effects:
+          resources:
+            sanity: 15
+          next_cards:
+            - card: "lingering_questions"
+              time_offset: 30
+
+  academic_interest:
+    title: "Academic Interest"
+    description: "Your findings have attracted attention in scholarly circles"
+    priority: 1
+    choices:
+      - description: "Form a study group"
+        requirements:
+          resources:
+            gold: 50
+        effects:
+          resources:
+            gold: -50
+            knowledge: 15
+            cultists: 3
+          next_cards:
+            - card: "secret_society"
+              time_offset: 20
+      
+      - description: "Keep research private"
+        effects:
+          resources:
+            knowledge: 5
+            sanity: -5
+          next_cards:
+            - card: "solitary_research"
+              time_offset: 15
+
+  dark_revelation:
+    title: "Dark Revelation"
+    description: "The true meaning of the symbols becomes clear"
+    priority: 1
+    choices:
+      - description: "Record the revelation"
+        requirements:
+          resources:
+            sanity: 40
+        effects:
+          resources:
+            sanity: -25
+            knowledge: 30
+          relics:
+            gain:
+              - ancient_tome
+          next_cards:
+            - card: "final_truth"
+              time_offset: 20
+      
+      - description: "Step back from the precipice"
+        effects:
+          resources:
+            knowledge: -15
+            sanity: 20
+          next_cards:
+            - card: "fading_insight"
+              time_offset: 25
+
+  lingering_thoughts:
+    title: "Lingering Thoughts"
+    description: "The knowledge refuses to be fully suppressed"
+    priority: 1
+    choices:
+      - description: "Seek professional help"
+        requirements:
+          resources:
+            gold: 80
+        effects:
+          resources:
+            gold: -80
+            sanity: 30
+          next_cards:
+            - card: "mental_recovery"
+              time_offset: 35
+      
+      - description: "Learn to live with it"
+        effects:
+          resources:
+            sanity: -10
+            knowledge: 8
+          next_cards:
+            - card: "uneasy_balance"
+              time_offset: 20
+
+  dream_meaning:
+    title: "Dream Meaning"
+    description: "The interpreter's eyes widen at your description"
+    priority: 1
+    choices:
+      - description: "Press for answers"
+        requirements:
+          resources:
+            gold: 30
+        effects:
+          resources:
+            gold: -30
+            knowledge: 12
+            sanity: -8
+          next_cards:
+            - card: "dream_truth"
+              time_offset: 15
+      
+      - description: "Leave before learning too much"
+        effects:
+          resources:
+            sanity: 10
+          next_cards:
+            - card: "nagging_curiosity"
+              time_offset: 25
+
+  dreamless_sleep:
+    title: "Dreamless Sleep"
+    description: "The medicine grants you peaceful nights"
+    priority: 1
+    choices:
+      - description: "Continue the treatment"
+        requirements:
+          resources:
+            gold: 40
+        effects:
+          resources:
+            gold: -40
+            sanity: 25
+            knowledge: -5
+          next_cards:
+            - card: "addiction_risk"
+              time_offset: 30
+      
+      - description: "Stop the medicine"
+        effects:
+          resources:
+            sanity: -10
+          next_cards:
+            - card: "returning_dreams"
+              time_offset: 15
+
+  secret_society:
+    title: "Secret Society"
+    description: "You've found others who seek forbidden knowledge"
+    priority: 1
+    choices:
+      - description: "Join their inner circle"
+        requirements:
+          resources:
+            knowledge: 30
+            gold: 100
+        effects:
+          resources:
+            gold: -100
+            knowledge: 20
+            cultists: 5
+          relics:
+            gain:
+              - cursed_coin
+          next_cards:
+            - card: "inner_sanctum"
+              time_offset: 30
+      
+      - description: "Maintain distance"
+        effects:
+          resources:
+            knowledge: 5
+            sanity: 10
+          next_cards:
+            - card: "society_suspicion"
+              time_offset: 20
+
+  coast_clear:
+    title: "Coast Clear"
+    description: "The scholar's attention seems to have moved elsewhere"
+    priority: 1
+    choices:
+      - description: "Resume research"
+        effects:
+          resources:
+            knowledge: 5
+          next_cards:
+            - card: "careful_studies"
+              time_offset: 15
+      
+      - description: "Stay cautious"
+        effects:
+          resources:
+            sanity: 10
+            gold: -20
+          next_cards:
+            - card: "paranoia"
+              time_offset: 25
+
+  forced_cooperation:
+    title: "Forced Cooperation"
+    description: "The scholar agrees to work with you under duress"
+    priority: 1
+    choices:
+      - description: "Extract their knowledge"
+        requirements:
+          resources:
+            cultists: 3
+        effects:
+          resources:
+            knowledge: 15
+            sanity: -10
+          next_cards:
+            - card: "dark_teachings"
+              time_offset: 20
+      
+      - description: "Offer genuine partnership"
+        effects:
+          resources:
+            gold: -50
+            knowledge: 10
+            cultists: 1
+          next_cards:
+            - card: "uneasy_alliance"
+              time_offset: 25
+
+  ash_secrets:
+    title: "Ash Secrets"
+    description: "The ashes reveal ancient mysteries"
+    priority: 1
+    choices:
+      - description: "Transcribe the whispers"
+        requirements:
+          resources:
+            sanity: 20
+        effects:
+          resources:
+            sanity: -15
+            knowledge: 18
+          next_cards:
+            - card: "ash_manuscript"
+              time_offset: 30
+      
+      - description: "Silence the whispers"
+        effects:
+          resources:
+            sanity: 15
+            knowledge: -5
+          next_cards:
+            - card: "quiet_ashes"
+              time_offset: 20
+
+  collector_interest:
+    title: "Collector's Interest"
+    description: "A wealthy collector shows interest in your mysterious jar"
+    priority: 1
+    choices:
+      - description: "Negotiate sale"
+        effects:
+          resources:
+            gold: 150
+          next_cards:
+            - card: "profitable_transaction"
+              time_offset: 15
+      
+      - description: "Study their collection"
+        requirements:
+          resources:
+            gold: 50
+        effects:
+          resources:
+            gold: -50
+            knowledge: 12
+          next_cards:
+            - card: "collector_library"
+              time_offset: 25
+
+  hidden_place:
+    title: "Hidden Place"
+    description: "The winds lead you to an ancient structure"
+    priority: 1
+    choices:
+      - description: "Explore inside"
+        requirements:
+          resources:
+            sanity: 25
+        effects:
+          resources:
+            sanity: -15
+            knowledge: 20
+          relics:
+            gain:
+              - dark_mirror
+          next_cards:
+            - card: "ancient_chamber"
+              time_offset: 30
+      
+      - description: "Mark the location"
+        effects:
+          resources:
+            knowledge: 5
+          next_cards:
+            - card: "return_preparation"
+              time_offset: 20
+
+  uneasy_dreams:
+    title: "Uneasy Dreams"
+    description: "Your dreams are filled with half-remembered symbols"
+    priority: 1
+    choices:
+      - description: "Embrace the dreams"
+        requirements:
+          resources:
+            sanity: 20
+        effects:
+          resources:
+            sanity: -10
+            knowledge: 8
+          next_cards:
+            - card: "dream_wisdom"
+              time_offset: 15
+      
+      - description: "Seek dreamless sleep"
+        requirements:
+          resources:
+            gold: 30
+        effects:
+          resources:
+            gold: -30
+            sanity: 15
+          next_cards:
+            - card: "medicine_dependence"
+              time_offset: 25
+
+# Life events and choices
+cards:
+  job_offer:
+    title: "Entry Level Job Offer"
+    description: "A starting position at a decent company"
+    drawed_at: 0  # Starting card
+    priority: 1
+    choices:
+      - description: "Accept the offer"
+        effects:
+          resources:
+            money: 200  # Signing bonus
+            energy: -20
+            skill: 5
+          next_cards:
+            - card: "first_day"
+              time_offset: 5
+            - card: "apartment_hunting"
+              time_offset: 10
+              
+      - description: "Negotiate for better terms"
+        requirements:
+          resources:
+            skill: 15
+            network: 10
+        effects:
+          resources:
+            money: 300
+            energy: -10
+            skill: 8
+          next_cards:
+            - card: "first_day"
+              time_offset: 5
+            - card: "impressed_boss"
+              time_offset: 15
+              
+      - description: "Decline and keep searching"
+        effects:
+          resources:
+            money: -100
+            energy: -10
+            network: 5
+          next_cards:
+            - card: "freelance_opportunity"
+              time_offset: 15
+
+  first_day:
+    title: "First Day at Work"
+    description: "Time to make a first impression"
+    priority: 1
+    choices:
+      - description: "Work extra hours"
+        effects:
+          resources:
+            energy: -30
+            skill: 10
+            money: 50
+          next_cards:
+            - card: "overtime_culture"
+              time_offset: 20
+            - card: "tired_morning"
+              time_offset: 5
+              
+      - description: "Maintain work-life balance"
+        effects:
+          resources:
+            energy: -15
+            skill: 5
+            happiness: 5
+          next_cards:
+            - card: "hobby_time"
+              time_offset: 15
+            - card: "team_lunch"
+              time_offset: 10
+
+  apartment_hunting:
+    title: "Looking for a Place"
+    description: "Time to find your own space"
+    priority: 1
+    choices:
+      - description: "Rent a nice apartment"
+        requirements:
+          resources:
+            money: 1000
+        effects:
+          resources:
+            money: -1000  # Deposit
+            happiness: 10
+          next_cards:
+            - card: "settling_in"
+              time_offset: 10
+            - card: "neighbor_intro"
+              time_offset: 15
+              
+      - description: "Share with roommates"
+        effects:
+          resources:
+            money: -400
+            network: 5
+            happiness: -5
+          next_cards:
+            - card: "roommate_drama"
+              time_offset: 20
+            - card: "shared_expenses"
+              time_offset: 10
+
+  hobby_time:
+    title: "Free Evening"
+    description: "How do you want to spend your time?"
+    priority: 1
+    choices:
+      - description: "Join a gym"
+        requirements:
+          resources:
+            money: 200
+        effects:
+          resources:
+            money: -200
+            energy: -10
+          relics:
+            gain:
+              - gym_membership
+          next_cards:
+            - card: "fitness_goals"
+              time_offset: 30
+              
+      - description: "Start a creative hobby"
+        requirements:
+          resources:
+            money: 150
+        effects:
+          resources:
+            money: -150
+            energy: -5
+            happiness: 8
+          relics:
+            gain:
+              - hobby
+          next_cards:
+            - card: "hobby_progress"
+              time_offset: 20
+              
+      - description: "Learn online skills"
+        effects:
+          resources:
+            energy: -15
+            skill: 8
+          next_cards:
+            - card: "online_course"
+              time_offset: 25
+
+  overtime_culture:
+    title: "Overtime Culture"
+    description: "The office seems to expect long hours"
+    priority: 1
+    choices:
+      - description: "Embrace it for career growth"
+        effects:
+          resources:
+            energy: -25
+            money: 200
+            happiness: -10
+            skill: 15
+          next_cards:
+            - card: "promotion_track"
+              time_offset: 30
+            - card: "health_warning"
+              time_offset: 20
+              
+      - description: "Set boundaries"
+        requirements:
+          resources:
+            skill: 20
+        effects:
+          resources:
+            network: -5
+            happiness: 10
+            energy: 10
+          next_cards:
+            - card: "work_life_balance"
+              time_offset: 15
+            - card: "team_reaction"
+              time_offset: 10
+
+  health_warning:
+    title: "Health Check-up"
+    description: "Doctor suggests lifestyle changes"
+    priority: 2
+    choices:
+      - description: "Take it seriously"
+        requirements:
+          resources:
+            money: 300
+        effects:
+          resources:
+            money: -300
+            energy: 20
+            happiness: 10
+          next_cards:
+            - card: "lifestyle_change"
+              time_offset: 20
+              
+      - description: "Ignore the advice"
+        effects:
+          resources:
+            energy: -15
+            happiness: -10
+          next_cards:
+            - card: "worsening_health"
+              time_offset: 30
+
+  online_course:
+    title: "Online Learning"
+    description: "An opportunity to upgrade your skills"
+    priority: 1
+    choices:
+      - description: "Focus on technical skills"
+        requirements:
+          resources:
+            energy: 20
+            money: 100
+        effects:
+          resources:
+            money: -100
+            energy: -20
+            skill: 15
+          next_cards:
+            - card: "certification"
+              time_offset: 30
+            - card: "job_opportunities"
+              time_offset: 45
+              
+      - description: "Learn management skills"
+        requirements:
+          resources:
+            energy: 20
+            money: 150
+        effects:
+          resources:
+            money: -150
+            energy: -20
+            skill: 10
+            network: 8
+          next_cards:
+            - card: "leadership_role"
+              time_offset: 40
+
+  freelance_opportunity:
+    title: "Freelance Project"
+    description: "A chance to work independently"
+    priority: 1
+    choices:
+      - description: "Take the project"
+        requirements:
+          resources:
+            skill: 15
+        effects:
+          resources:
+            money: 300
+            energy: -25
+            skill: 10
+          next_cards:
+            - card: "client_feedback"
+              time_offset: 15
+            - card: "more_projects"
+              time_offset: 20
+              
+      - description: "Start your own business"
+        requirements:
+          resources:
+            money: 500
+            skill: 20
+        effects:
+          resources:
+            money: -500
+            energy: -30
+            happiness: -5
+          relics:
+            gain:
+              - side_business
+          next_cards:
+            - card: "business_growth"
+              time_offset: 30
+            - card: "work_life_balance"
+              time_offset: 15
+
+  certification:
+    title: "Professional Certification"
+    description: "Your studies have led to a certification opportunity"
+    priority: 1
+    choices:
+      - description: "Take the exam"
+        requirements:
+          resources:
+            money: 200
+            energy: 30
+        effects:
+          resources:
+            money: -200
+            energy: -30
+            skill: 20
+          relics:
+            gain:
+              - degree
+          next_cards:
+            - card: "career_advancement"
+              time_offset: 20
+              
+      - description: "Postpone for later"
+        effects:
+          resources:
+            happiness: -5
+          next_cards:
+            - card: "missed_opportunity"
+              time_offset: 30
+
+  business_growth:
+    title: "Growing Business"
+    description: "Your side business shows promise"
+    priority: 1
+    choices:
+      - description: "Invest more time"
+        requirements:
+          resources:
+            energy: 40
+            money: 300
+        effects:
+          resources:
+            money: -300
+            energy: -40
+            skill: 15
+            happiness: 10
+          next_cards:
+            - card: "business_success"
+              time_offset: 30
+            - card: "work_stress"
+              time_offset: 15
+              
+      - description: "Keep it small"
+        effects:
+          resources:
+            energy: -10
+            money: 100
+            happiness: 5
+          next_cards:
+            - card: "stable_income"
+              time_offset: 20
+
+  impressed_boss:
+    title: "Impressed Management"
+    description: "Your negotiation skills caught their attention"
+    priority: 1
+    choices:
+      - description: "Take on leadership tasks"
+        effects:
+          resources:
+            energy: -20
+            skill: 15
+            network: 10
+          next_cards:
+            - card: "team_lead"
+              time_offset: 30
+              
+      - description: "Focus on technical growth"
+        effects:
+          resources:
+            energy: -15
+            skill: 20
+          next_cards:
+            - card: "technical_expert"
+              time_offset: 25
+
+  tired_morning:
+    title: "Morning Fatigue"
+    description: "The long hours are taking their toll"
+    priority: 1
+    choices:
+      - description: "More coffee"
+        effects:
+          resources:
+            money: -10
+            energy: 10
+            happiness: -5
+          next_cards:
+            - card: "caffeine_dependency"
+              time_offset: 20
+              
+      - description: "Adjust sleep schedule"
+        effects:
+          resources:
+            energy: 15
+            happiness: 5
+            skill: -5
+          next_cards:
+            - card: "better_routine"
+              time_offset: 15
+
+  team_lunch:
+    title: "Team Bonding Lunch"
+    description: "A chance to know your colleagues better"
+    priority: 1
+    choices:
+      - description: "Join and socialize"
+        effects:
+          resources:
+            money: -30
+            energy: -5
+            network: 10
+            happiness: 5
+          next_cards:
+            - card: "office_friends"
+              time_offset: 20
+              
+      - description: "Work through lunch"
+        effects:
+          resources:
+            energy: -10
+            network: -5
+            skill: 5
+          next_cards:
+            - card: "social_isolation"
+              time_offset: 25
+
+  settling_in:
+    title: "New Home Setup"
+    description: "Time to make your space comfortable"
+    priority: 1
+    choices:
+      - description: "Invest in quality furniture"
+        requirements:
+          resources:
+            money: 500
+        effects:
+          resources:
+            money: -500
+            happiness: 15
+          next_cards:
+            - card: "home_comfort"
+              time_offset: 15
+              
+      - description: "Basic necessities only"
+        effects:
+          resources:
+            money: -200
+            happiness: 5
+          next_cards:
+            - card: "minimal_living"
+              time_offset: 20
+
+  roommate_drama:
+    title: "Roommate Conflict"
+    description: "Issues arise with shared living"
+    priority: 2
+    choices:
+      - description: "Address issues directly"
+        requirements:
+          resources:
+            network: 10
+        effects:
+          resources:
+            energy: -10
+            network: 5
+            happiness: 10
+          next_cards:
+            - card: "improved_living"
+              time_offset: 15
+              
+      - description: "Look for new place"
+        requirements:
+          resources:
+            money: 1000
+        effects:
+          resources:
+            money: -1000
+            energy: -20
+            happiness: -5
+          next_cards:
+            - card: "fresh_start"
+              time_offset: 20
+
+  fitness_goals:
+    title: "Fitness Progress"
+    description: "Starting to see results from gym"
+    priority: 1
+    choices:
+      - description: "Increase workout intensity"
+        effects:
+          resources:
+            energy: 15
+            happiness: 10
+            money: -50
+          next_cards:
+            - card: "peak_fitness"
+              time_offset: 30
+              
+      - description: "Maintain current routine"
+        effects:
+          resources:
+            energy: 10
+            happiness: 5
+          next_cards:
+            - card: "steady_health"
+              time_offset: 25
+
+  hobby_progress:
+    title: "Creative Achievement"
+    description: "Your hobby is yielding results"
+    priority: 1
+    choices:
+      - description: "Share work online"
+        effects:
+          resources:
+            network: 10
+            happiness: 10
+            energy: -5
+          next_cards:
+            - card: "online_recognition"
+              time_offset: 20
+              
+      - description: "Keep it personal"
+        effects:
+          resources:
+            happiness: 15
+            skill: 5
+          next_cards:
+            - card: "personal_satisfaction"
+              time_offset: 15
+
+  promotion_track:
+    title: "Career Advancement"
+    description: "Your hard work is noticed"
+    priority: 1
+    choices:
+      - description: "Accept promotion"
+        effects:
+          resources:
+            money: 500
+            energy: -20
+            skill: 15
+            happiness: 10
+          next_cards:
+            - card: "new_responsibilities"
+              time_offset: 15
+              
+      - description: "Stay in current role"
+        effects:
+          resources:
+            happiness: 5
+            energy: 10
+          next_cards:
+            - card: "comfortable_position"
+              time_offset: 20
+
+  work_life_balance:
+    title: "Balanced Lifestyle"
+    description: "Finding harmony between work and life"
+    priority: 1
+    choices:
+      - description: "Maintain balance"
+        effects:
+          resources:
+            happiness: 15
+            energy: 10
+            money: -100
+          next_cards:
+            - card: "life_satisfaction"
+              time_offset: 30
+              
+      - description: "Push for more achievement"
+        effects:
+          resources:
+            energy: -15
+            skill: 10
+            money: 200
+          next_cards:
+            - card: "career_focus"
+              time_offset: 25
+
+  lifestyle_change:
+    title: "Healthy Routine"
+    description: "Implementing doctor's advice"
+    priority: 1
+    choices:
+      - description: "Full lifestyle change"
+        effects:
+          resources:
+            energy: 25
+            happiness: 15
+            money: -200
+          next_cards:
+            - card: "vibrant_health"
+              time_offset: 30
+              
+      - description: "Moderate changes"
+        effects:
+          resources:
+            energy: 15
+            happiness: 10
+            money: -100
+          next_cards:
+            - card: "better_health"
+              time_offset: 25
+
+  business_success:
+    title: "Thriving Business"
+    description: "Your venture is growing well"
+    priority: 1
+    choices:
+      - description: "Expand operations"
+        requirements:
+          resources:
+            money: 1000
+            energy: 50
+        effects:
+          resources:
+            money: -1000
+            energy: -50
+            skill: 20
+          next_cards:
+            - card: "business_empire"
+              time_offset: 40
+              
+      - description: "Maintain current scale"
+        effects:
+          resources:
+            money: 300
+            happiness: 10
+            energy: -20
+          next_cards:
+            - card: "stable_business"
+              time_offset: 30
+
+  neighbor_intro:
+    title: "Curious Neighbor"
+    description: "Your neighbor noticed you disposing of the strange ashes"
+    priority: 1
+    choices:
+      - description: "Make up an excuse"
+        effects:
+          resources:
+            sanity: -2
+          next_cards:
+            - card: "neighbor_suspicion"
+              time_offset: 15
+      
+      - description: "Tell them the truth"
+        effects:
+          resources:
+            sanity: 5
+            cultists: 1
+          next_cards:
+            - card: "neighbor_interest"
+              time_offset: 10
+
+  neighbor_suspicion:
+    title: "Suspicious Neighbor"
+    description: "Your neighbor seems increasingly wary of your activities"
+    priority: 1
+    choices:
+      - description: "Keep your distance"
+        effects:
+          resources:
+            sanity: 5
+          next_cards:
+            - card: "quiet_days"
+              time_offset: 20
+      
+      - description: "Try to befriend them"
+        requirements:
+          resources:
+            gold: 30
+        effects:
+          resources:
+            gold: -30
+            cultists: 1
+          next_cards:
+            - card: "new_ally"
+              time_offset: 15
+
+  neighbor_interest:
+    title: "Intrigued Neighbor"
+    description: "Your neighbor shows genuine interest in the occult"
+    priority: 1
+    choices:
+      - description: "Share your knowledge"
+        effects:
+          resources:
+            knowledge: -2
+            cultists: 1
+          next_cards:
+            - card: "growing_circle"
+              time_offset: 20
+      
+      - description: "Keep them at arm's length"
+        effects:
+          resources:
+            sanity: 5
+          next_cards:
+            - card: "quiet_days"
+              time_offset: 15
+
+  quiet_days:
+    title: "Quiet Days"
+    description: "Life seems to return to normal... for now"
+    priority: 1
+    choices:
+      - description: "Enjoy the peace"
+        effects:
+          resources:
+            sanity: 10
+            gold: -10
+          next_cards:
+            - card: "strange_dreams"
+              time_offset: 30
+      
+      - description: "Continue your research"
+        requirements:
+          resources:
+            sanity: 20
+        effects:
+          resources:
+            sanity: -10
+            knowledge: 8
+          next_cards:
+            - card: "breakthrough"
+              time_offset: 15
+
+  growing_circle:
+    title: "Growing Circle"
+    description: "Your neighbor introduces you to others interested in the occult"
+    priority: 2
+    choices:
+      - description: "Form a study group"
+        requirements:
+          resources:
+            gold: 50
+        effects:
+          resources:
+            gold: -50
+            cultists: 3
+            knowledge: 10
+          next_cards:
+            - card: "secret_society"
+              time_offset: 20
+      
+      - description: "Decline politely"
+        effects:
+          resources:
+            cultists: -1
+          next_cards:
+            - card: "quiet_days"
+              time_offset: 15
+
+  glowing_residue:
+    title: "Glowing Residue"
+    description: "The ashes have left strange, luminescent marks on your hands"
+    priority: 1
+    choices:
+      - description: "Study the effect"
+        requirements:
+          resources:
+            sanity: 15
+        effects:
+          resources:
+            sanity: -8
+            knowledge: 12
+          relics:
+            gain:
+              - glowing_mark
+          next_cards:
+            - card: "strange_transformation"
+              time_offset: 10
+      
+      - description: "Wash it off quickly"
+        effects:
+          resources:
+            sanity: 5
+          next_cards:
+            - card: "lingering_glow"
+              time_offset: 5
+
+  lingering_glow:
+    title: "Lingering Glow"
+    description: "Despite your best efforts, a faint glow persists"
+    priority: 1
+    choices:
+      - description: "Seek medical help"
+        requirements:
+          resources:
+            gold: 40
+        effects:
+          resources:
+            gold: -40
+            sanity: 10
+          next_cards:
+            - card: "doctor_visit"
+              time_offset: 15
+      
+      - description: "Learn to live with it"
+        effects:
+          resources:
+            sanity: -5
+            knowledge: 5
+          next_cards:
+            - card: "adaptation"
+              time_offset: 20
+
+  strange_transformation:
+    title: "Strange Transformation"
+    description: "The glowing residue transforms your hands"
+    priority: 1
+    choices:
+      - description: "Study the effect"
+        requirements:
+          resources:
+            sanity: 15
+        effects:
+          resources:
+            sanity: -8
+            knowledge: 12
+          relics:
+            gain:
+              - glowing_mark
+          next_cards:
+            - card: "adaptation"
+              time_offset: 10
+      
+      - description: "Wash it off quickly"
+        effects:
+          resources:
+            sanity: 5
+          next_cards:
+            - card: "lingering_glow"
+              time_offset: 5
+
+  adaptation:
+    title: "Adaptation"
+    description: "You adapt to the new changes"
+    priority: 1
+    choices:
+      - description: "Embrace the changes"
+        effects:
+          resources:
+            sanity: 10
+            knowledge: 5
+          next_cards:
+            - card: "strange_transformation"
+              time_offset: 10
+      
+      - description: "Try to suppress it"
+        effects:
+          resources:
+            knowledge: -5
+            sanity: 5
+          next_cards:
+            - card: "lingering_glow"
+              time_offset: 5
+
+  doctor_visit:
+    title: "Doctor Visit"
+    description: "A visit to the doctor reveals new insights"
+    priority: 1
+    choices:
+      - description: "Accept the diagnosis"
+        effects:
+          resources:
+            sanity: 10
+            knowledge: 5
+          next_cards:
+            - card: "adaptation"
+              time_offset: 10
+      
+      - description: "Seek a second opinion"
+        effects:
+          resources:
+            sanity: 5
+            knowledge: 10
+          next_cards:
+            - card: "alternative_treatment"
+              time_offset: 15
+
+  alternative_treatment:
+    title: "Alternative Treatment"
+    description: "Trying a different approach to the problem"
+    priority: 1
+    choices:
+      - description: "Try the new treatment"
+        effects:
+          resources:
+            sanity: 10
+            knowledge: 5
+          next_cards:
+            - card: "adaptation"
+              time_offset: 10
+      
+      - description: "Keep the old method"
+        effects:
+          resources:
+            sanity: 5
+            knowledge: 10
+          next_cards:
+            - card: "lingering_glow"
+              time_offset: 5
+
+  returning_dreams:
+    title: "Returning Dreams"
+    description: "The dreams return, but with a different meaning"
+    priority: 1
+    choices:
+      - description: "Embrace the new dreams"
+        effects:
+          resources:
+            sanity: 10
+            knowledge: 5
+          next_cards:
+            - card: "strange_transformation"
+              time_offset: 10
+      
+      - description: "Try to suppress them"
+        effects:
+          resources:
+            sanity: 5
+            knowledge: 10
+          next_cards:
+            - card: "lingering_glow"
+              time_offset: 5
+
+  strange_dreams:
+    title: "Strange Dreams"
+    description: "The dreams are filled with strange symbols"
+    priority: 1
+    choices:
+      - description: "Embrace the dreams"
+        effects:
+          resources:
+            sanity: 10
+            knowledge: 5
+          next_cards:
+            - card: "strange_transformation"
+              time_offset: 10
+      
+      - description: "Try to forget them"
+        effects:
+          resources:
+            sanity: 5
+            knowledge: 10
+          next_cards:
+            - card: "lingering_glow"
+              time_offset: 5
+
+  life_satisfaction:
+    title: "Satisfied with Life"
+    description: "You feel content with your current life situation"
+    priority: 1
+    choices:
+      - description: "Enjoy the present"
+        effects:
+          resources:
+            sanity: 10
+            gold: -10
+          next_cards:
+            - card: "strange_dreams"
+              time_offset: 30
+      
+      - description: "Plan for the future"
+        effects:
+          resources:
+            sanity: 5
+            knowledge: 5
+          next_cards:
+            - card: "career_focus"
+              time_offset: 25
+
+  career_focus:
+    title: "Career Focus"
+    description: "You're dedicated to achieving your career goals"
+    priority: 1
+    choices:
+      - description: "Work harder"
+        effects:
+          resources:
+            energy: -20
+            skill: 10
+            money: 200
+          next_cards:
+            - card: "business_success"
+              time_offset: 30
+            - card: "work_stress"
+              time_offset: 15
+      
+      - description: "Take a break"
+        effects:
+          resources:
+            energy: 10
+            happiness: 5
+          next_cards:
+            - card: "life_satisfaction"
+              time_offset: 30
+
+  business_empire:
+    title: "Thriving Business Empire"
+    description: "Your business is thriving and expanding"
+    priority: 1
+    choices:
+      - description: "Expand further"
+        requirements:
+          resources:
+            money: 1000
+            energy: 50
+        effects:
+          resources:
+            money: -1000
+            energy: -50
+            skill: 20
+          next_cards:
+            - card: "business_empire"
+              time_offset: 40
+              
+      - description: "Maintain current scale"
+        effects:
+          resources:
+            money: 300
+            happiness: 10
+            energy: -20
+          next_cards:
+            - card: "stable_business"
+              time_offset: 30
+
+  stable_business:
+    title: "Stable Business"
+    description: "Your business is running smoothly"
+    priority: 1
+    choices:
+      - description: "Keep it running"
+        effects:
+          resources:
+            money: 300
+            happiness: 10
+            energy: -20
+          next_cards:
+            - card: "business_empire"
+              time_offset: 30
+              
+      - description: "Expand slowly"
+        effects:
+          resources:
+            money: 100
+            happiness: 5
+          next_cards:
+            - card: "stable_income"
+              time_offset: 20
+
+  stable_income:
+    title: "Stable Income"
+    description: "You have a consistent source of income"
+    priority: 1
+    choices:
+      - description: "Keep the income"
+        effects:
+          resources:
+            money: 300
+            happiness: 10
+          next_cards:
+            - card: "business_empire"
+              time_offset: 30
+              
+      - description: "Invest in other ventures"
+        effects:
+          resources:
+            money: 100
+            happiness: 5
+          next_cards:
+            - card: "business_growth"
+              time_offset: 20
+
+  business_growth:
+    title: "Growing Business"
+    description: "Your business is expanding"
+    priority: 1
+    choices:
+      - description: "Expand operations"
+        requirements:
+          resources:
+            money: 1000
+            energy: 50
+        effects:
+          resources:
+            money: -1000
+            energy: -50
+            skill: 20
+          next_cards:
+            - card: "business_empire"
+              time_offset: 40
+              
+      - description: "Maintain current scale"
+        effects:
+          resources:
+            money: 300
+            happiness: 10
+            energy: -20
+          next_cards:
+            - card: "stable_business"
+              time_offset: 30 
