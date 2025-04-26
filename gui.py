@@ -101,8 +101,8 @@ class TimelineGrid(QFrame):
         for i in reversed(range(self.grid_layout.count())):
             self.grid_layout.itemAt(i).widget().setParent(None)
         
-        # Calculate visible time range
-        visible_range = self.max_time - self.current_time + 1
+        # Calculate visible time range (ensure it's an integer)
+        visible_range = max(0, int(self.max_time - self.current_time) + 1)
         
         # Add time labels and grid lines
         for t in range(visible_range):
@@ -395,13 +395,30 @@ class CardWidget(QFrame):
             choice_widget = ChoiceWidget(choice)
             choice_layout.addWidget(choice_widget)
             
+            # Button container for preview and select
+            button_container = QWidget()
+            button_layout = QHBoxLayout(button_container)
+            button_layout.setSpacing(5)
+            
+            # Preview button
+            preview_btn = QPushButton("Preview")
+            preview_btn.setFixedWidth(70)
+            preview_btn.setCheckable(True)  # Make the button toggleable
+            preview_btn.clicked.connect(lambda checked, idx=i: 
+                self.game_window.preview_choice(self.index, idx) if checked 
+                else self.game_window.clear_preview())
+            button_layout.addWidget(preview_btn)
+            
             # Choice button
             choice_btn = QPushButton("Select")
+            choice_btn.setFixedWidth(70)
             choice_btn.clicked.connect(lambda checked, idx=i: self.game_window.make_choice(self.index, idx))
             if not self.game_window.game.can_make_choice(self.index, i):
                 choice_btn.setEnabled(False)
-            choice_layout.addWidget(choice_btn)
+                preview_btn.setEnabled(False)
+            button_layout.addWidget(choice_btn)
             
+            choice_layout.addWidget(button_container)
             layout.addLayout(choice_layout)
         
         self.setLayout(layout)
@@ -411,6 +428,8 @@ class GameWindow(QMainWindow):
         super().__init__()
         self.game = GameState(Path("config"))
         self.auto_jump = False
+        self.previewing_choice = None
+        self.advance_btn = None  # Store reference to advance button
         self.setup_ui()
         self.update_display()
         
@@ -438,11 +457,12 @@ class GameWindow(QMainWindow):
         stats_layout.addWidget(self.time_label)
         
         # Resources with individual labels for better visibility
+        self.resource_labels = {}  # Store resource labels in a dict for easy access
         for resource in self.game.resource_config['resources']:
-            resource_label = QLabel()
-            resource_label.setFont(QFont("Arial", 10))
-            setattr(self, f"{resource}_label", resource_label)
-            stats_layout.addWidget(resource_label)
+            label = QLabel()
+            label.setFont(QFont("Arial", 10))
+            self.resource_labels[resource] = label
+            stats_layout.addWidget(label)
         
         stats_group.setLayout(stats_layout)
         left_layout.addWidget(stats_group)
@@ -451,9 +471,9 @@ class GameWindow(QMainWindow):
         controls_group = QGroupBox("Controls")
         controls_layout = QVBoxLayout()
         
-        advance_btn = QPushButton("Advance Time")
-        advance_btn.clicked.connect(self.advance_time)
-        controls_layout.addWidget(advance_btn)
+        self.advance_btn = QPushButton("Advance Time")  # Store reference
+        self.advance_btn.clicked.connect(self.advance_time)
+        controls_layout.addWidget(self.advance_btn)
         
         self.auto_jump_btn = QPushButton("Auto Jump")
         self.auto_jump_btn.setCheckable(True)
@@ -504,15 +524,45 @@ class GameWindow(QMainWindow):
         
         main_layout.addWidget(right_panel)
     
-    def update_display(self):
+    def update_display(self, force_clear_preview=False):
+        """
+        Update the display while maintaining preview state unless forced to clear
+        force_clear_preview: if True, clear preview regardless of current state
+        """
         # Update time
         self.time_label.setText(f"Time: {self.game.current_time}")
         
-        # Update individual resource labels
+        # Get current preview state
+        preview_choice = None if force_clear_preview else self.previewing_choice
+        
+        # Update resource labels
         for resource, amount in self.game.resources.items():
-            label = getattr(self, f"{resource}_label")
+            label = self.resource_labels[resource]
             resource_name = self.game.resource_config['resources'][resource]['name']
+            
+            # If previewing and the previewed card still exists, show the difference
+            if preview_choice is not None:
+                card_index, choice_index = preview_choice
+                if card_index < len(self.game.active_cards):  # Check if card still exists
+                    card = self.game.active_cards[card_index]
+                    choice = card.choices[choice_index]
+                    
+                    # Calculate resource change if this choice is made
+                    change = 0
+                    if "effects" in choice and "resources" in choice["effects"]:
+                        change = choice["effects"]["resources"].get(resource, 0)
+                    
+                    # Show current value and change
+                    if change != 0:
+                        sign = "+" if change > 0 else ""
+                        label.setText(f"{resource_name}: {amount} ({sign}{change} → {amount + change})")
+                        # Color the text based on whether it's an increase or decrease
+                        label.setStyleSheet(f"color: {'#4CAF50' if change > 0 else '#FF6B6B'}")
+                        continue
+            
+            # Default display if not previewing or no change
             label.setText(f"{resource_name}: {amount}")
+            label.setStyleSheet("")
         
         # Update timeline
         self.timeline_grid.update_cards(self.game.card_queue, self)
@@ -524,7 +574,21 @@ class GameWindow(QMainWindow):
         for i, card in enumerate(self.game.active_cards):
             card_widget = CardWidget(card, i, self)
             self.cards_layout.addWidget(card_widget)
+        
+        # Update advance button state
+        has_next_cards = bool(self.game.card_queue)
+        self.advance_btn.setEnabled(has_next_cards)
+        if not has_next_cards:
+            self.advance_btn.setText("No More Cards")
+        else:
+            self.advance_btn.setText("Advance Time")
             
+        # Update auto jump button state
+        self.auto_jump_btn.setEnabled(has_next_cards)
+        if not has_next_cards and self.auto_jump:
+            self.auto_jump = False
+            self.auto_jump_btn.setChecked(False)
+    
     def show_card_details(self, card):
         dialog = CardDetailsDialog(card, self)
         dialog.exec()
@@ -532,7 +596,7 @@ class GameWindow(QMainWindow):
     def make_choice(self, card_index, choice_index):
         if self.game.can_make_choice(card_index, choice_index):
             self.game.make_choice(card_index, choice_index)
-            self.update_display()
+            self.update_display(force_clear_preview=True)  # Force clear preview after making choice
             
             # If auto jump is enabled and no active cards remain, jump to next card
             if self.auto_jump and not self.game.active_cards and self.game.card_queue:
@@ -559,15 +623,25 @@ class GameWindow(QMainWindow):
         while self.game.current_time < next_time:
             self.game.advance_time()
         
-        self.update_display()
+        self.update_display(force_clear_preview=True)  # Force clear preview after jump
     
     def advance_time(self):
         self.game.advance_time()
-        self.update_display()
+        self.update_display(force_clear_preview=True)  # Force clear preview after time advance
         
         # If auto jump is enabled and no active cards remain, jump to next card
         if self.auto_jump and not self.game.active_cards and self.game.card_queue:
             self.jump_to_next_card()
+
+    def preview_choice(self, card_index, choice_index):
+        """Show a preview of what would happen if this choice was made"""
+        self.previewing_choice = (card_index, choice_index)
+        self.update_display()
+
+    def clear_preview(self):
+        """Clear the preview and restore normal display"""
+        self.previewing_choice = None
+        self.update_display()
 
 def main():
     app = QApplication([])
