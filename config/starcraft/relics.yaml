@@ -174,4 +174,50 @@ relics:
       - type: "resource_per_time"
         resource: "army"
         amount: 20
-        interval: 30 
+        interval: 30
+
+  protoss_relic:
+    name: "Protoss Relic"
+    description: "An ancient artifact from the Protoss civilization"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "tech"
+        amount: 1
+        interval: 10
+        requirements:
+          tech:
+            min: 1
+            max: 2
+            
+  zerg_artifact:
+    name: "Zerg Artifact"
+    description: "A mysterious biological sample from the Zerg"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "army"
+        amount: 2
+        interval: 5
+        requirements:
+          tech:
+            min: 1
+            
+  terran_blueprint:
+    name: "Terran Blueprint"
+    description: "Advanced construction plans from the Terran Dominion"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "minerals"
+        amount: 10
+        interval: 5
+        
+  khaydarin_crystal:
+    name: "Khaydarin Crystal"
+    description: "A powerful crystal that enhances energy production"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "gas"
+        amount: 5
+        interval: 5
+        requirements:
+          tech:
+            min: 2 
