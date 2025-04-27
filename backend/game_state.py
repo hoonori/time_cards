@@ -18,13 +18,14 @@ class Relic:
     passive_effects: List[Dict]
 
 class GameState:
-    def __init__(self, config_path: Path):
-        # Load configurations
-        with open(config_path / "resources.yaml") as f:
+    def __init__(self, config_path: Path, mode: str = "life"):
+        # Load configurations from the specified mode directory
+        mode_path = config_path / mode
+        with open(mode_path / "resources.yaml") as f:
             self.resource_config = yaml.safe_load(f)
-        with open(config_path / "relics.yaml") as f:
+        with open(mode_path / "relics.yaml") as f:
             self.relic_config = yaml.safe_load(f)
-        with open(config_path / "cards.yaml") as f:
+        with open(mode_path / "cards.yaml") as f:
             self.card_config = yaml.safe_load(f)
             
         # Initialize game state

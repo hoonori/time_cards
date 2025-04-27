@@ -1,0 +1,69 @@
+# Life resources that can be managed
+resources:
+  money:
+    name: "Money"
+    description: "Financial resources"
+    initial_amount: 1000
+    max_amount: 999999
+    min_amount: -10000  # Can go into debt
+  
+  energy:
+    name: "Energy"
+    description: "Physical and mental energy"
+    initial_amount: 100
+    max_amount: 100
+    min_amount: 0
+    
+  skill:
+    name: "Skills"
+    description: "Professional and personal abilities"
+    initial_amount: 10
+    max_amount: 100
+    
+  network:
+    name: "Network"
+    description: "Social connections and relationships"
+    initial_amount: 5
+    max_amount: 100
+    
+  happiness:
+    name: "Happiness"
+    description: "Overall life satisfaction"
+    initial_amount: 50
+    max_amount: 100
+    min_amount: 0  # If reaches 0, burnout/depression (game over)
+
+  minerals:
+    name: "Minerals"
+    description: "Basic resource for construction and units"
+    initial_amount: 50
+    min_amount: 0
+    max_amount: 10000
+  
+  gas:
+    name: "Vespene Gas"
+    description: "Advanced resource for higher tier units and upgrades"
+    initial_amount: 0
+    min_amount: 0
+    max_amount: 5000
+  
+  supply:
+    name: "Supply"
+    description: "Population capacity for units"
+    initial_amount: 10
+    min_amount: 0
+    max_amount: 200
+  
+  tech:
+    name: "Tech Level"
+    description: "Current technological advancement level"
+    initial_amount: 0
+    min_amount: 0
+    max_amount: 10
+  
+  army:
+    name: "Army Size"
+    description: "Total military strength"
+    initial_amount: 0
+    min_amount: 0
+    max_amount: 200 

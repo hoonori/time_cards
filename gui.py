@@ -5,6 +5,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QColor, QPalette
 from backend.game_state import GameState
 from pathlib import Path
+import sys
 
 class TimelineCard(QFrame):
     def __init__(self, card, parent=None):
@@ -423,18 +424,74 @@ class CardWidget(QFrame):
         
         self.setLayout(layout)
 
+class ModeSelectionDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.selected_mode = None
+        self.setup_ui()
+        
+    def setup_ui(self):
+        self.setWindowTitle("Select Game Mode")
+        self.setMinimumWidth(400)
+        
+        layout = QVBoxLayout()
+        
+        # Mode description
+        desc_label = QLabel("Choose your game mode:")
+        desc_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        layout.addWidget(desc_label)
+        
+        # Starcraft mode
+        starcraft_btn = QPushButton("Starcraft")
+        starcraft_btn.setMinimumHeight(50)
+        starcraft_btn.clicked.connect(lambda: self.select_mode("starcraft"))
+        layout.addWidget(starcraft_btn)
+        
+        starcraft_desc = QLabel("Command your forces in an interstellar war. Manage resources, build armies, and develop technology to achieve victory.")
+        starcraft_desc.setWordWrap(True)
+        layout.addWidget(starcraft_desc)
+        
+        layout.addSpacing(20)
+        
+        # Life mode
+        life_btn = QPushButton("Life")
+        life_btn.setMinimumHeight(50)
+        life_btn.clicked.connect(lambda: self.select_mode("life"))
+        layout.addWidget(life_btn)
+        
+        life_desc = QLabel("Navigate through daily life challenges. Balance your resources, make important decisions, and shape your future.")
+        life_desc.setWordWrap(True)
+        layout.addWidget(life_desc)
+        
+        self.setLayout(layout)
+    
+    def select_mode(self, mode):
+        self.selected_mode = mode
+        self.accept()
+
 class GameWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.game = GameState(Path("config"))
+        self.setWindowTitle("Time Cards Game")
+        self.setMinimumSize(800, 600)
+        
+        # Show mode selection dialog
+        mode_dialog = ModeSelectionDialog(self)
+        if mode_dialog.exec() == QDialog.DialogCode.Accepted:
+            self.mode = mode_dialog.selected_mode
+        else:
+            sys.exit()
+            
+        # Initialize game state with selected mode
+        self.game = GameState(Path("config"), self.mode)
         self.auto_jump = False
         self.previewing_choice = None
-        self.advance_btn = None  # Store reference to advance button
+        self.advance_btn = None
         self.setup_ui()
         self.update_display()
-        
+    
     def setup_ui(self):
-        self.setWindowTitle("Time Cards Game")
+        self.setWindowTitle(f"Time Cards Game - {self.mode.capitalize()} Mode")
         self.setMinimumSize(1200, 800)  # Increased minimum width for split layout
         
         # Central widget with horizontal split

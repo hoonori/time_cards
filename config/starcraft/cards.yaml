@@ -1,0 +1,218 @@
+cards:
+  choose_race:
+    title: "Choose Your Race"
+    description: "You must choose your race to begin your journey in the Koprulu Sector."
+    drawed_at: 0
+    priority: 1
+    choices:
+      - description: "Choose Terran"
+        requirements:
+          resources: {}
+        effects:
+          resources:
+            minerals: 50
+            gas: 0
+            supply: 10
+            tech: 0
+            army: 0
+          next_cards:
+            - card: "initial_scouting"
+              time_offset: 1
+      - description: "Choose Protoss"
+        requirements:
+          resources: {}
+        effects:
+          resources:
+            minerals: 50
+            gas: 0
+            supply: 10
+            tech: 0
+            army: 0
+          next_cards:
+            - card: "initial_scouting"
+              time_offset: 1
+      - description: "Choose Zerg"
+        requirements:
+          resources: {}
+        effects:
+          resources:
+            minerals: 50
+            gas: 0
+            supply: 10
+            tech: 0
+            army: 0
+          next_cards:
+            - card: "initial_scouting"
+              time_offset: 1
+
+  initial_scouting:
+    title: "Initial Scouting"
+    description: "Your scout has returned with information about the surrounding area."
+    drawed_at: 1
+    priority: 1
+    choices:
+      - description: "Send SCV to expand"
+        requirements:
+          resources:
+            minerals: 50
+        effects:
+          resources:
+            minerals: -50
+          next_cards:
+            - card: "base_expansion"
+              time_offset: 2
+      - description: "Build Barracks"
+        requirements:
+          resources:
+            minerals: 150
+        effects:
+          resources:
+            minerals: -150
+          next_cards:
+            - card: "early_aggression"
+              time_offset: 1
+      - description: "Research Tech"
+        requirements:
+          resources:
+            minerals: 100
+            gas: 100
+        effects:
+          resources:
+            minerals: -100
+            gas: -100
+            tech: 1
+          next_cards:
+            - card: "research_breakthrough"
+              time_offset: 3
+
+  early_aggression:
+    title: "Early Aggression"
+    description: "Enemy forces are approaching your base. How will you respond?"
+    drawed_at: 2
+    priority: 2
+    choices:
+      - description: "Defend with Marines"
+        requirements:
+          resources:
+            minerals: 50
+            supply: 2
+        effects:
+          resources:
+            minerals: -50
+            army: 4
+          next_cards:
+            - card: "base_expansion"
+              time_offset: 1
+      - description: "Counter-attack"
+        requirements:
+          resources:
+            minerals: 100
+            supply: 4
+        effects:
+          resources:
+            minerals: -100
+            army: 8
+          next_cards:
+            - card: "enemy_base_discovered"
+              time_offset: 1
+      - description: "Retreat and Expand"
+        requirements:
+          resources:
+            minerals: 200
+        effects:
+          resources:
+            minerals: -200
+          next_cards:
+            - card: "base_expansion"
+              time_offset: 2
+
+  base_expansion:
+    title: "Base Expansion"
+    description: "Your economy is growing. Time to expand your operations."
+    drawed_at: 3
+    priority: 1
+    choices:
+      - description: "Build Command Center"
+        requirements:
+          resources:
+            minerals: 400
+        effects:
+          resources:
+            minerals: -400
+            supply: 10
+          next_cards:
+            - card: "resource_rich_area"
+              time_offset: 2
+      - description: "Build Factory"
+        requirements:
+          resources:
+            minerals: 200
+            gas: 100
+        effects:
+          resources:
+            minerals: -200
+            gas: -100
+          next_cards:
+            - card: "mech_units_available"
+              time_offset: 2
+      - description: "Build Starport"
+        requirements:
+          resources:
+            minerals: 150
+            gas: 150
+        effects:
+          resources:
+            minerals: -150
+            gas: -150
+          next_cards:
+            - card: "air_units_available"
+              time_offset: 2
+
+  research_breakthrough:
+    title: "Research Breakthrough"
+    description: "Your scientists have made a significant discovery!"
+    drawed_at: 4
+    priority: 2
+    choices:
+      - description: "Weapon Upgrade"
+        requirements:
+          resources:
+            minerals: 100
+            gas: 100
+            tech: 1
+        effects:
+          resources:
+            minerals: -100
+            gas: -100
+            tech: 2
+          next_cards:
+            - card: "advanced_weapons"
+              time_offset: 2
+      - description: "Armor Upgrade"
+        requirements:
+          resources:
+            minerals: 100
+            gas: 100
+            tech: 1
+        effects:
+          resources:
+            minerals: -100
+            gas: -100
+            tech: 2
+          next_cards:
+            - card: "advanced_armor"
+              time_offset: 2
+      - description: "Shield Upgrade"
+        requirements:
+          resources:
+            minerals: 100
+            gas: 100
+            tech: 1
+        effects:
+          resources:
+            minerals: -100
+            gas: -100
+            tech: 2
+          next_cards:
+            - card: "advanced_shields"
+              time_offset: 2 

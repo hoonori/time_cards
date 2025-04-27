@@ -1,0 +1,177 @@
+# Life assets that provide passive benefits
+relics:
+  degree:
+    name: "University Degree"
+    description: "A valuable qualification that opens doors"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "money"
+        amount: 50
+        interval: 30  # Monthly salary boost
+      - type: "resource_per_time"
+        resource: "skill"
+        amount: 1
+        interval: 60  # Learning from work
+        
+  car:
+    name: "Reliable Car"
+    description: "Makes life easier but needs maintenance"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "energy"
+        amount: 10
+        interval: 30  # Saves energy on commute
+      - type: "resource_per_time"
+        resource: "money"
+        amount: -20
+        interval: 30  # Maintenance costs
+        
+  apartment:
+    name: "Own Apartment"
+    description: "A place to call home, investment for the future"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "happiness"
+        amount: 5
+        interval: 30
+      - type: "resource_per_time"
+        resource: "money"
+        amount: -100  # Monthly mortgage/maintenance
+        interval: 30
+        
+  gym_membership:
+    name: "Gym Membership"
+    description: "Regular exercise improves health and energy"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "energy"
+        amount: 5
+        interval: 15
+      - type: "resource_per_time"
+        resource: "happiness"
+        amount: 2
+        interval: 15
+      - type: "resource_per_time"
+        resource: "money"
+        amount: -30
+        interval: 30
+        requirements:
+          energy:
+            min: 30  # Only works if you have energy to actually go
+            
+  hobby:
+    name: "Fulfilling Hobby"
+    description: "A passion that brings joy and new friends"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "happiness"
+        amount: 3
+        interval: 10
+      - type: "resource_per_time"
+        resource: "network"
+        amount: 1
+        interval: 30
+      - type: "resource_per_time"
+        resource: "money"
+        amount: -20
+        interval: 30
+        
+  side_business:
+    name: "Side Business"
+    description: "A small venture that could grow bigger"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "money"
+        amount: 100
+        interval: 30
+      - type: "resource_per_time"
+        resource: "energy"
+        amount: -5
+        interval: 15
+      - type: "resource_per_time"
+        resource: "skill"
+        amount: 2
+        interval: 30
+
+  command_center:
+    name: "Terran Command Center"
+    description: "Main Terran base structure for resource gathering and unit production."
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "minerals"
+        amount: 10
+        interval: 5
+      - type: "resource_per_time"
+        resource: "supply"
+        amount: 10
+        interval: 30
+  
+  nexus:
+    name: "Protoss Nexus"
+    description: "Primary Protoss structure for resource collection and probe production."
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "minerals"
+        amount: 15
+        interval: 5
+      - type: "resource_per_time"
+        resource: "gas"
+        amount: 5
+        interval: 5
+  
+  hatchery:
+    name: "Zerg Hatchery"
+    description: "Core Zerg structure for resource collection and drone production."
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "minerals"
+        amount: 20
+        interval: 5
+      - type: "resource_per_time"
+        resource: "army"
+        amount: 5
+        interval: 30
+  
+  enemy_intel:
+    name: "Enemy Intelligence"
+    description: "Valuable information about enemy positions and strategies."
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "tech"
+        amount: 1
+        interval: 60
+  
+  expansion_complete:
+    name: "Operational Expansion"
+    description: "A fully functional secondary base increasing resource income."
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "minerals"
+        amount: 30
+        interval: 5
+      - type: "resource_per_time"
+        resource: "gas"
+        amount: 10
+        interval: 5
+  
+  fortified_position:
+    name: "Defensive Fortification"
+    description: "Enhanced base defenses providing better protection."
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "army"
+        amount: 10
+        interval: 30
+  
+  super_weapon:
+    name: "Ultimate Weapon"
+    description: "A powerful weapon that could turn the tide of battle."
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "tech"
+        amount: 2
+        interval: 30
+      - type: "resource_per_time"
+        resource: "army"
+        amount: 20
+        interval: 30 
