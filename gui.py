@@ -1,11 +1,14 @@
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                             QHBoxLayout, QLabel, QPushButton, QFrame, QScrollArea,
-                            QGridLayout, QDialog, QSizePolicy, QGroupBox)
+                            QGridLayout, QDialog, QSizePolicy, QGroupBox, QTreeWidget,
+                            QTreeWidgetItem, QMessageBox)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QColor, QPalette
 from backend.game_state import GameState
+from backend.state_history import StateManager
 from pathlib import Path
 import sys
+import time
 
 class TimelineCard(QFrame):
     def __init__(self, card, parent=None):
@@ -469,6 +472,90 @@ class ModeSelectionDialog(QDialog):
         self.selected_mode = mode
         self.accept()
 
+class HistoryDialog(QDialog):
+    """Dialog for viewing and loading game states"""
+    def __init__(self, state_manager: StateManager, parent=None):
+        super().__init__(parent)
+        self.state_manager = state_manager
+        self.setup_ui()
+        
+    def setup_ui(self):
+        self.setWindowTitle("Game History")
+        self.setMinimumSize(600, 400)
+        
+        layout = QVBoxLayout()
+        
+        # Tree widget for state history
+        self.tree = QTreeWidget()
+        self.tree.setHeaderLabels(["Last Played", "Message", "ID"])
+        self.tree.itemDoubleClicked.connect(self.load_selected_state)
+        layout.addWidget(self.tree)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        
+        load_btn = QPushButton("Load Selected State")
+        load_btn.clicked.connect(self.load_selected_state)
+        button_layout.addWidget(load_btn)
+        
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self.accept)
+        button_layout.addWidget(close_btn)
+        
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+        
+        self.update_tree()
+    
+    def update_tree(self):
+        """Update the tree widget with current state history"""
+        self.tree.clear()
+        
+        # Create a mapping of node IDs to tree items
+        items = {}
+        
+        # First pass: create all items
+        for node_data in self.state_manager.get_tree_structure():
+            item = QTreeWidgetItem([
+                time.strftime("%H:%M:%S", time.localtime(node_data['last_played'])),
+                node_data['message'],
+                node_data['id']
+            ])
+            items[node_data['id']] = item
+            
+            # Mark current node
+            if node_data['is_current']:
+                for i in range(3):
+                    item.setBackground(i, QColor("#E6F3FF"))
+        
+        # Second pass: set up parent-child relationships
+        for node_data in self.state_manager.get_tree_structure():
+            item = items[node_data['id']]
+            if node_data['parent']:
+                parent_item = items[node_data['parent']]
+                parent_item.addChild(item)
+            else:
+                self.tree.addTopLevelItem(item)
+        
+        # Expand all items
+        self.tree.expandAll()
+    
+    def load_selected_state(self):
+        """Load the selected state into the game"""
+        selected_items = self.tree.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "No Selection", "Please select a state to load.")
+            return
+            
+        item = selected_items[0]
+        node_id = item.text(2)  # ID is in the third column
+        
+        try:
+            self.parent().load_game_state(node_id)
+            self.accept()  # Close dialog after successful load
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to load state: {str(e)}")
+
 class GameWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -482,8 +569,12 @@ class GameWindow(QMainWindow):
         else:
             sys.exit()
             
-        # Initialize game state with selected mode
-        self.game = GameState(Path("config"), self.mode)
+        # Initialize game state and state manager
+        config_path = Path("config")
+        self.game = GameState(config_path, self.mode)
+        self.state_manager = StateManager(config_path, self.mode)
+        self.state_manager.initialize(self.game)
+        
         self.auto_jump = False
         self.previewing_choice = None
         self.advance_btn = None
@@ -536,6 +627,11 @@ class GameWindow(QMainWindow):
         self.auto_jump_btn.setCheckable(True)
         self.auto_jump_btn.clicked.connect(self.toggle_auto_jump)
         controls_layout.addWidget(self.auto_jump_btn)
+        
+        # Add history button to controls group
+        history_btn = QPushButton("View History")
+        history_btn.clicked.connect(self.show_history)
+        controls_layout.addWidget(history_btn)
         
         controls_group.setLayout(controls_layout)
         left_layout.addWidget(controls_group)
@@ -651,11 +747,24 @@ class GameWindow(QMainWindow):
         dialog.exec()
             
     def make_choice(self, card_index, choice_index):
-        if self.game.can_make_choice(card_index, choice_index):
-            self.game.make_choice(card_index, choice_index)
-            self.update_display(force_clear_preview=True)  # Force clear preview after making choice
+        if not self.game.can_make_choice(card_index, choice_index):
+            return
             
-            # If auto jump is enabled and no active cards remain, jump to next card
+        # Get card and choice info for history message
+        card = self.game.active_cards[card_index]
+        card_title = card.title
+        choice_desc = card.choices[choice_index]['description']
+        message = f"Chose '{choice_desc}' on card '{card_title}' (Time: {self.game.current_time})"
+        
+        # Make the choice
+        success = self.game.make_choice(card_index, choice_index)
+        
+        if success:
+            # Save state to history
+            self.state_manager.save_state(self.game, message=message)
+            
+            # Update display and handle auto-jump
+            self.update_display(force_clear_preview=True)
             if self.auto_jump and not self.game.active_cards and self.game.card_queue:
                 self.jump_to_next_card()
             
@@ -699,6 +808,28 @@ class GameWindow(QMainWindow):
         """Clear the preview and restore normal display"""
         self.previewing_choice = None
         self.update_display()
+
+    def show_history(self):
+        """Show the history dialog"""
+        dialog = HistoryDialog(self.state_manager, self)
+        dialog.exec()
+    
+    def load_game_state(self, node_id: str):
+        """Load a game state from history"""
+        try:
+            loaded_state = self.state_manager.load_state(node_id)
+            self.game = loaded_state
+            
+            # If there are cards in the queue, jump to the next card's time
+            if self.game.card_queue:
+                next_time = min(card.drawed_at for card in self.game.card_queue)
+                while self.game.current_time < next_time:
+                    self.game.advance_time()
+            
+            self.update_display(force_clear_preview=True)
+            print(f"Successfully loaded state from node {node_id}")
+        except ValueError as e:
+            QMessageBox.critical(self, "Error", f"Failed to load state: {str(e)}")
 
 def main():
     app = QApplication([])

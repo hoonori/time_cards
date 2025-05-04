@@ -11,11 +11,39 @@ class Card:
     priority: int
     choices: List[Dict]
 
+    def to_dict(self) -> Dict:
+        """Convert Card object to serializable dictionary"""
+        return {
+            "title": self.title,
+            "description": self.description,
+            "drawed_at": self.drawed_at,
+            "priority": self.priority,
+            "choices": self.choices
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'Card':
+        """Create Card object from dictionary"""
+        return cls(**data)
+
 @dataclass
 class Relic:
     name: str
     description: str
     passive_effects: List[Dict]
+
+    def to_dict(self) -> Dict:
+        """Convert Relic object to serializable dictionary"""
+        return {
+            "name": self.name,
+            "description": self.description,
+            "passive_effects": self.passive_effects
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'Relic':
+        """Create Relic object from dictionary"""
+        return cls(**data)
 
 class GameState:
     def __init__(self, config_path: Path, mode: str = "life"):
@@ -195,4 +223,29 @@ class GameState:
             if "max_amount" in config and amount > config["max_amount"]:
                 return True
                 
-        return False 
+        return False
+
+    def to_dict(self) -> Dict:
+        """Convert GameState to serializable dictionary"""
+        return {
+            "current_time": self.current_time,
+            "resources": self.resources,
+            "relics": [relic.to_dict() for relic in self.relics],
+            "active_cards": [card.to_dict() for card in self.active_cards],
+            "card_queue": [card.to_dict() for card in self.card_queue]
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict, config_path: Path, mode: str) -> 'GameState':
+        """Create GameState from dictionary"""
+        # Create new instance with config
+        state = cls(config_path, mode)
+        
+        # Restore state from data
+        state.current_time = data["current_time"]
+        state.resources = data["resources"]
+        state.relics = [Relic.from_dict(r_data) for r_data in data["relics"]]
+        state.active_cards = [Card.from_dict(c_data) for c_data in data["active_cards"]]
+        state.card_queue = [Card.from_dict(q_data) for q_data in data["card_queue"]]
+        
+        return state 
