@@ -9,6 +9,7 @@ from backend.state_history import StateManager
 from pathlib import Path
 import sys
 import time
+from backend.game_loader import GameLoader
 
 class TimelineCard(QFrame):
     def __init__(self, card, parent=None):
@@ -430,47 +431,34 @@ class CardWidget(QFrame):
 class ModeSelectionDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.selected_mode = None
-        self.setup_ui()
-        
-    def setup_ui(self):
         self.setWindowTitle("Select Game Mode")
-        self.setMinimumWidth(400)
+        self.setModal(True)
         
         layout = QVBoxLayout()
-        
-        # Mode description
-        desc_label = QLabel("Choose your game mode:")
-        desc_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        layout.addWidget(desc_label)
-        
-        # Starcraft mode
-        starcraft_btn = QPushButton("Starcraft")
-        starcraft_btn.setMinimumHeight(50)
-        starcraft_btn.clicked.connect(lambda: self.select_mode("starcraft"))
-        layout.addWidget(starcraft_btn)
-        
-        starcraft_desc = QLabel("Command your forces in an interstellar war. Manage resources, build armies, and develop technology to achieve victory.")
-        starcraft_desc.setWordWrap(True)
-        layout.addWidget(starcraft_desc)
-        
-        layout.addSpacing(20)
-        
-        # Life mode
-        life_btn = QPushButton("Life")
-        life_btn.setMinimumHeight(50)
-        life_btn.clicked.connect(lambda: self.select_mode("life"))
-        layout.addWidget(life_btn)
-        
-        life_desc = QLabel("Navigate through daily life challenges. Balance your resources, make important decisions, and shape your future.")
-        life_desc.setWordWrap(True)
-        layout.addWidget(life_desc)
-        
         self.setLayout(layout)
-    
-    def select_mode(self, mode):
+        
+        # Get available modes
+        modes = GameLoader.get_available_modes()
+        if not modes:
+            QMessageBox.critical(self, "Error", "No game modes found in config directory!")
+            self.reject()
+            return
+            
+        # Create buttons for each mode
+        for mode in modes:
+            btn = QPushButton(mode)
+            description = GameLoader.get_mode_description(mode)
+            if description:
+                btn.setToolTip(description)
+            btn.clicked.connect(lambda checked, m=mode: self.accept_mode(m))
+            layout.addWidget(btn)
+            
+    def accept_mode(self, mode: str):
         self.selected_mode = mode
         self.accept()
+        
+    def get_selected_mode(self) -> str:
+        return getattr(self, 'selected_mode', None)
 
 class HistoryDialog(QDialog):
     """Dialog for viewing and loading game states"""
@@ -565,7 +553,7 @@ class GameWindow(QMainWindow):
         # Show mode selection dialog
         mode_dialog = ModeSelectionDialog(self)
         if mode_dialog.exec() == QDialog.DialogCode.Accepted:
-            self.mode = mode_dialog.selected_mode
+            self.mode = mode_dialog.get_selected_mode()
         else:
             sys.exit()
             
