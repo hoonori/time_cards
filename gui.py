@@ -566,6 +566,9 @@ class GameWindow(QMainWindow):
         self.auto_jump = False
         self.previewing_choice = None
         self.advance_btn = None
+        
+        # Initialize UI components
+        self.relics_group = None
         self.setup_ui()
         self.update_display()
     
@@ -602,6 +605,19 @@ class GameWindow(QMainWindow):
         
         stats_group.setLayout(stats_layout)
         left_layout.addWidget(stats_group)
+        
+        # Relics section
+        self.relics_group = QGroupBox("Relics")  # Store reference to relics group
+        self.relics_group.setObjectName("Relics")  # Set object name for finding
+        relics_layout = QVBoxLayout()
+        
+        # Initialize with empty state
+        self.empty_relic_label = QLabel("No relics yet")
+        self.empty_relic_label.setFont(QFont("Arial", 10))
+        relics_layout.addWidget(self.empty_relic_label)
+        
+        self.relics_group.setLayout(relics_layout)
+        left_layout.addWidget(self.relics_group)
         
         # Controls section
         controls_group = QGroupBox("Controls")
@@ -704,6 +720,27 @@ class GameWindow(QMainWindow):
             # Default display if not previewing or no change
             label.setText(f"{resource_name}: {amount}")
             label.setStyleSheet("")
+        
+        # Update relic labels
+        relics_group = self.findChild(QGroupBox, "Relics")
+        if relics_group:
+            relics_layout = relics_group.layout()
+            # Clear existing labels
+            while relics_layout.count():
+                item = relics_layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+            
+            # Add new labels
+            if self.game.relics:
+                for relic in self.game.relics:
+                    label = QLabel(f"{relic.name}: {relic.description}")
+                    label.setFont(QFont("Arial", 10))
+                    relics_layout.addWidget(label)
+            else:
+                empty_label = QLabel("No relics yet")
+                empty_label.setFont(QFont("Arial", 10))
+                relics_layout.addWidget(empty_label)
         
         # Update timeline
         self.timeline_grid.update_cards(self.game.card_queue, self)

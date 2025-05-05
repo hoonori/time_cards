@@ -1,0 +1,9 @@
+relics:
+  natural_healing:
+    name: "자연적 체력회복"
+    description: "매 시간마다 에너지를 2 회복합니다."
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "energy"
+        amount: 2
+        interval: 1  # 1시간마다 

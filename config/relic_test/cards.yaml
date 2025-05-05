@@ -1,0 +1,80 @@
+cards:
+  start:
+    title: "시작"
+    description: "게임을 시작합니다."
+    drawed_at: 0
+    priority: 1
+    choices:
+      - description: "시작하기"
+        effects:
+          next_cards:
+            - card: "get_relic"
+              time_offset: 0
+
+  get_relic:
+    title: "유물 획득"
+    description: "자연적 체력회복 유물을 획득합니다."
+    priority: 1
+    choices:
+      - description: "유물 획득하기"
+        effects:
+          relics:
+            gain: ["natural_healing"]
+          next_cards:
+            - card: "energy_test"
+              time_offset: 0
+
+  energy_test:
+    title: "에너지 회복 테스트"
+    description: "시간이 지남에 따라 에너지가 회복되는지 확인합니다."
+    priority: 1
+    choices:
+      - description: "1시간 기다리기"
+        effects:
+          next_cards:
+            - card: "energy_test"
+              time_offset: 1
+      - description: "2시간 기다리기"
+        effects:
+          next_cards:
+            - card: "energy_test"
+              time_offset: 2
+      - description: "3시간 기다리기"
+        effects:
+          next_cards:
+            - card: "energy_test"
+              time_offset: 3
+
+  energy_choice:
+    title: "에너지 관리"
+    description: "에너지를 어떻게 사용할까요?"
+    priority: 1
+    choices:
+      - description: "휴식하기 (에너지 10 소모)"
+        requirements:
+          resources:
+            energy: 10
+        effects:
+          resources:
+            energy: -10
+            health: 20
+          next_cards:
+            - card: "energy_choice"
+              time_offset: 1
+      - description: "운동하기 (에너지 20 소모)"
+        requirements:
+          resources:
+            energy: 20
+        effects:
+          resources:
+            energy: -20
+            health: 10
+            attack: 1
+          next_cards:
+            - card: "energy_choice"
+              time_offset: 1
+      - description: "시간이 지나기를 기다린다"
+        effects:
+          next_cards:
+            - card: "energy_choice"
+              time_offset: 1 

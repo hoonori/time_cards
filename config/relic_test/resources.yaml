@@ -1,0 +1,23 @@
+resources:
+  health:
+    name: "Health"
+    initial_amount: 100
+    min_amount: 0
+    max_amount: 200
+  energy:
+    name: "Energy"
+    initial_amount: 50
+    min_amount: 0
+    max_amount: 100
+  cash:
+    name: "Cash"
+    initial_amount: 1000
+    min_amount: 0
+  attack:
+    name: "Attack"
+    initial_amount: 10
+    min_amount: 0
+  defense:
+    name: "Defense"
+    initial_amount: 5
+    min_amount: 0 

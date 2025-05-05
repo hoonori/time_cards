@@ -128,12 +128,13 @@ class GameState:
         if "relics" in effects:
             if "gain" in effects["relics"]:
                 for relic_id in effects["relics"]["gain"]:
-                    relic_data = self.relic_config["relics"][relic_id]
-                    self.relics.append(Relic(
-                        name=relic_data["name"],
-                        description=relic_data["description"],
-                        passive_effects=relic_data["passive_effects"]
-                    ))
+                    if relic_id in self.relic_config["relics"]:
+                        relic_data = self.relic_config["relics"][relic_id]
+                        self.relics.append(Relic(
+                            name=relic_data["name"],
+                            description=relic_data["description"],
+                            passive_effects=relic_data["passive_effects"]
+                        ))
             if "lose" in effects["relics"]:
                 for relic_id in effects["relics"]["lose"]:
                     self.relics = [r for r in self.relics if r.name != relic_id]
