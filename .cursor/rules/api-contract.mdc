@@ -3,3 +3,69 @@ description:
 globs:
 alwaysApply: false
 ---
+# API Contract Guidelines
+
+## API Design Principles
+
+1. RESTful Endpoints
+   - Use standard HTTP methods (GET, POST, PUT, DELETE)
+   - Follow resource-based URL structure
+   - Maintain versioning in URL paths (/api/v1/...)
+
+2. Response Formats
+   - All responses must be in JSON format
+   - Use consistent error response structure
+   - Include appropriate HTTP status codes
+
+3. Authentication
+   - Use token-based authentication
+   - Include authentication headers in all protected endpoints
+   - Document security requirements clearly
+
+## Common Response Structure
+
+```json
+{
+  "status": "success|error",
+  "data": {},
+  "message": "Optional message",
+  "errors": []
+}
+```
+
+## Game-Specific Endpoints
+
+1. Game State
+   - GET /api/v1/game/state
+   - POST /api/v1/game/action
+   - GET /api/v1/game/history
+
+2. Player Management
+   - POST /api/v1/players
+   - GET /api/v1/players/{id}
+   - PUT /api/v1/players/{id}
+
+3. Session Management
+   - POST /api/v1/sessions
+   - DELETE /api/v1/sessions
+
+## Documentation Requirements
+
+1. Each endpoint must document:
+   - Request parameters
+   - Response schema
+   - Error conditions
+   - Authentication requirements
+   - Rate limiting details
+
+2. Include examples for:
+   - Request payloads
+   - Success responses
+   - Error responses
+
+## Version Control
+
+1. API versioning follows semantic versioning
+2. Breaking changes require new API version
+3. Document migration guides between versions
+4. Maintain backwards compatibility when possible

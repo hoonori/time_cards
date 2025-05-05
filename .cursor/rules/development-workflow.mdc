@@ -3,3 +3,79 @@ description:
 globs:
 alwaysApply: false
 ---
+# Development Workflow Guidelines
+
+## Environment Setup
+
+1. Backend (Python)
+   - Python 3.8+
+   - Virtual environment management
+   - Install dependencies from requirements.txt
+   - Configure environment variables
+
+2. Frontend
+   - Node.js environment
+   - Package management with npm/yarn
+   - Development server configuration
+   - Build and deployment scripts
+
+## Development Process
+
+1. Feature Development
+   - Create feature branch from main
+   - Implement backend changes first
+   - Update API contract if needed
+   - Implement frontend changes
+   - Write tests for both components
+
+2. Testing Requirements
+   - Unit tests for all new features
+   - Integration tests for API endpoints
+   - Frontend component testing
+   - End-to-end testing for critical flows
+
+3. Code Quality
+   - Follow language-specific linting rules
+   - Maintain consistent code formatting
+   - Document complex logic
+   - Review code coverage
+
+## Deployment Pipeline
+
+1. Local Development
+   - Run backend server
+   - Run frontend development server
+   - Use local database
+   - Mock external services
+
+2. Testing Environment
+   - Automated deployment
+   - Integration testing
+   - Performance testing
+   - Security scanning
+
+3. Production
+   - Version tagging
+   - Deployment automation
+   - Monitoring setup
+   - Backup procedures
+
+## Best Practices
+
+1. Code Organization
+   - Modular architecture
+   - Clear separation of concerns
+   - Consistent file naming
+   - Proper documentation
+
+2. Git Workflow
+   - Meaningful commit messages
+   - Regular small commits
+   - Feature branch strategy
+   - Pull request reviews
+
+3. Error Handling
+   - Consistent error patterns
+   - Proper logging
+   - Error reporting
+   - Recovery procedures
