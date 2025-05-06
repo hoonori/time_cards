@@ -1,0 +1,13 @@
+relics:
+  scv:
+    name: "SCV"
+    description: "Terran worker unit that harvests minerals and gas"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "minerals"
+        amount: 5
+        interval: 5
+      - type: "resource_per_time"
+        resource: "supply"
+        amount: 1
+        interval: 1 

@@ -1,0 +1,24 @@
+resources:
+  minerals:
+    name: "Minerals"
+    description: "Basic resource used for construction and unit production"
+    initial_amount: 50
+    min_amount: 0
+    max_amount: 10000
+    color: "#4A90E2"
+  
+  gas:
+    name: "Vespene Gas"
+    description: "Advanced resource required for technology and advanced units"
+    initial_amount: 0
+    min_amount: 0
+    max_amount: 5000
+    color: "#50E3C2"
+  
+  supply:
+    name: "Supply"
+    description: "Population capacity for your units"
+    initial_amount: 10
+    min_amount: 0
+    max_amount: 200
+    color: "#B8E986" 
