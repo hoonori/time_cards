@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                             QHBoxLayout, QLabel, QPushButton, QFrame, QScrollArea,
                             QGridLayout, QDialog, QSizePolicy, QGroupBox, QTreeWidget,
-                            QTreeWidgetItem, QMessageBox)
+                            QTreeWidgetItem, QMessageBox, QRadioButton)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QColor, QPalette
 from backend.game_state import GameState
@@ -563,7 +563,7 @@ class GameWindow(QMainWindow):
         self.state_manager = StateManager(config_path, self.mode)
         self.state_manager.initialize(self.game)
         
-        self.auto_jump = False
+        self.auto_jump = True
         self.previewing_choice = None
         self.advance_btn = None
         
@@ -627,10 +627,11 @@ class GameWindow(QMainWindow):
         self.advance_btn.clicked.connect(self.advance_time)
         controls_layout.addWidget(self.advance_btn)
         
-        self.auto_jump_btn = QPushButton("Auto Jump")
-        self.auto_jump_btn.setCheckable(True)
-        self.auto_jump_btn.clicked.connect(self.toggle_auto_jump)
-        controls_layout.addWidget(self.auto_jump_btn)
+        # Auto jump radio button
+        self.auto_jump_radio = QRadioButton("Auto Advance")
+        self.auto_jump_radio.setChecked(True)  # Default to checked
+        self.auto_jump_radio.toggled.connect(self.toggle_auto_jump)
+        controls_layout.addWidget(self.auto_jump_radio)
         
         # Add history button to controls group
         history_btn = QPushButton("View History")
@@ -761,11 +762,9 @@ class GameWindow(QMainWindow):
         else:
             self.advance_btn.setText("Advance Time")
             
-        # Update auto jump button state
-        self.auto_jump_btn.setEnabled(has_next_cards)
-        if not has_next_cards and self.auto_jump:
-            self.auto_jump = False
-            self.auto_jump_btn.setChecked(False)
+        # Update auto jump radio state
+        self.auto_jump_radio.setEnabled(True)  # Always enable the radio button
+        # Don't change the checked state of auto jump radio
     
     def show_card_details(self, card):
         dialog = CardDetailsDialog(card, self)
@@ -796,12 +795,12 @@ class GameWindow(QMainWindow):
     def toggle_auto_jump(self, checked):
         self.auto_jump = checked
         if checked:
-            self.auto_jump_btn.setText("Stop Auto")
+            self.auto_jump_radio.setText("Stop Auto")
             # If no active cards, jump immediately
             if not self.game.active_cards and self.game.card_queue:
                 self.jump_to_next_card()
         else:
-            self.auto_jump_btn.setText("Auto Jump")
+            self.auto_jump_radio.setText("Auto Advance")
     
     def jump_to_next_card(self):
         if not self.game.card_queue:
@@ -811,8 +810,11 @@ class GameWindow(QMainWindow):
         next_time = min(card.drawed_at for card in self.game.card_queue)
         
         # Jump to that time
-        while self.game.current_time < next_time:
+        while self.game.current_time <= next_time:  # Changed from < to <=
+            print(f"[DEBUG] Advancing time from {self.game.current_time} to {next_time}")
             self.game.advance_time()
+            if not self.game.card_queue:  # Break if no more cards
+                break
         
         self.update_display(force_clear_preview=True)  # Force clear preview after jump
     
@@ -820,9 +822,9 @@ class GameWindow(QMainWindow):
         self.game.advance_time()
         self.update_display(force_clear_preview=True)  # Force clear preview after time advance
         
-        # If auto jump is enabled and no active cards remain, jump to next card
+        # If auto jump is enabled and no active cards remain, advance time again
         if self.auto_jump and not self.game.active_cards and self.game.card_queue:
-            self.jump_to_next_card()
+            self.advance_time()
 
     def preview_choice(self, card_index, choice_index):
         """Show a preview of what would happen if this choice was made"""
