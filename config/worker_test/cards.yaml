@@ -1,0 +1,116 @@
+cards:
+  start:
+    title: "Starting Workers"
+    description: "Choose your initial workers"
+    drawed_at: 0
+    priority: 1
+    choices:
+      - description: "Train 2 SCVs"
+        requirements:
+          resources:
+            minerals: 50
+        effects:
+          resources:
+            minerals: -50
+          relics:
+            gain: ["scv", "scv"]
+          next_cards:
+            - card: "continue"
+              time_offset: 5
+      - description: "Train 2 Probes"
+        requirements:
+          resources:
+            minerals: 50
+        effects:
+          resources:
+            minerals: -50
+          relics:
+            gain: ["probe", "probe"]
+          next_cards:
+            - card: "continue"
+              time_offset: 5
+      - description: "Train 2 Drones"
+        requirements:
+          resources:
+            minerals: 50
+        effects:
+          resources:
+            minerals: -50
+          relics:
+            gain: ["drone", "drone"]
+          next_cards:
+            - card: "continue"
+              time_offset: 5
+            
+  continue:
+    title: "Continue"
+    description: "Time passes..."
+    drawed_at: 5
+    priority: 1
+    choices:
+      - description: "Continue"
+        effects:
+          next_cards:
+            - card: "more_workers"
+              time_offset: 25
+            - card: "supply_depot"
+              time_offset: 15
+            
+  more_workers:
+    title: "Expand Workforce"
+    description: "Train additional workers to increase resource gathering"
+    drawed_at: 30
+    priority: 1
+    choices:
+      - description: "Train 1 SCV"
+        requirements:
+          resources:
+            minerals: 25
+            supply: 1
+        effects:
+          resources:
+            minerals: -25
+          relics:
+            gain: ["scv"]
+      - description: "Train 1 Probe"
+        requirements:
+          resources:
+            minerals: 30
+            supply: 1
+        effects:
+          resources:
+            minerals: -30
+          relics:
+            gain: ["probe"]
+      - description: "Train 1 Drone"
+        requirements:
+          resources:
+            minerals: 35
+            supply: 1
+        effects:
+          resources:
+            minerals: -35
+          relics:
+            gain: ["drone"]
+          next_cards:
+            - card: "continue"
+              time_offset: 5
+            
+  supply_depot:
+    title: "Build Supply Depot"
+    description: "Construct a supply depot to increase your supply capacity"
+    drawed_at: 20
+    priority: 1
+    choices:
+      - description: "Build Supply Depot"
+        requirements:
+          resources:
+            minerals: 100
+        effects:
+          resources:
+            minerals: -100
+          relics:
+            gain: ["supply_depot"]
+          next_cards:
+            - card: "continue"
+              time_offset: 5 

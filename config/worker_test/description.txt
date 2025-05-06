@@ -1,0 +1,1 @@
+Test mode for worker relic system. Focuses on testing worker mechanics, stacking, and resource generation. 

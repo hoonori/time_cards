@@ -32,13 +32,15 @@ class Relic:
     name: str
     description: str
     passive_effects: List[Dict]
+    count: int = 1  # Default to 1 for non-stackable relics
 
     def to_dict(self) -> Dict:
         """Convert Relic object to serializable dictionary"""
         return {
             "name": self.name,
             "description": self.description,
-            "passive_effects": self.passive_effects
+            "passive_effects": self.passive_effects,
+            "count": self.count
         }
 
     @classmethod
@@ -60,6 +62,7 @@ class GameState:
         self.relics = []
         self.active_cards = self._init_starting_cards()
         self.card_queue = []  # Cards to be drawn in future
+        self.effect_timers = {}  # Track when effects were last applied
         
     def _init_resources(self) -> Dict[str, int]:
         """Initialize resources with their starting amounts"""
@@ -109,7 +112,24 @@ class GameState:
                 return False
                 
         return True
-    
+
+    def validate_resource_change(self, resource: str, change: int) -> bool:
+        """Validate if a resource change is allowed"""
+        config = self.resource_config["resources"][resource]
+        new_amount = self.resources[resource] + change
+        
+        # Check if negative values are allowed
+        if not config.get("allow_negative", False) and new_amount < 0:
+            return False
+            
+        # Check min/max bounds
+        if "min_amount" in config and new_amount < config["min_amount"]:
+            return False
+        if "max_amount" in config and new_amount > config["max_amount"]:
+            return False
+            
+        return True
+
     def make_choice(self, card_index: int, choice_index: int) -> bool:
         """Apply the effects of a choice"""
         if not self.can_make_choice(card_index, choice_index):
@@ -118,6 +138,12 @@ class GameState:
         card = self.active_cards[card_index]
         choice = card.choices[choice_index]
         effects = choice.get("effects", {})
+        
+        # Validate all resource changes before applying them
+        if "resources" in effects:
+            for resource, change in effects["resources"].items():
+                if not self.validate_resource_change(resource, change):
+                    return False
         
         # Apply resource changes
         if "resources" in effects:
@@ -130,11 +156,16 @@ class GameState:
                 for relic_id in effects["relics"]["gain"]:
                     if relic_id in self.relic_config["relics"]:
                         relic_data = self.relic_config["relics"][relic_id]
-                        self.relics.append(Relic(
-                            name=relic_data["name"],
-                            description=relic_data["description"],
-                            passive_effects=relic_data["passive_effects"]
-                        ))
+                        # Check if relic already exists
+                        existing_relic = next((r for r in self.relics if r.name == relic_data["name"]), None)
+                        if existing_relic:
+                            existing_relic.count += 1
+                        else:
+                            self.relics.append(Relic(
+                                name=relic_data["name"],
+                                description=relic_data["description"],
+                                passive_effects=relic_data["passive_effects"]
+                            ))
             if "lose" in effects["relics"]:
                 for relic_id in effects["relics"]["lose"]:
                     self.relics = [r for r in self.relics if r.name != relic_id]
@@ -166,6 +197,26 @@ class GameState:
         
         return True
     
+    def get_effect_countdowns(self) -> Dict[str, Dict[str, int]]:
+        """Get countdowns for all relic effects"""
+        countdowns = {}
+        for relic in self.relics:
+            for effect in relic.passive_effects:
+                if effect["type"] == "resource_per_time":
+                    key = f"{relic.name}_{effect['resource']}"
+                    if key not in self.effect_timers:
+                        self.effect_timers[key] = 0
+                    time_since_last = self.current_time - self.effect_timers[key]
+                    remaining = effect["interval"] - (time_since_last % effect["interval"])
+                    countdowns[key] = {
+                        "relic": relic.name,
+                        "resource": effect["resource"],
+                        "amount": effect["amount"] * relic.count,
+                        "remaining": remaining,
+                        "interval": effect["interval"]
+                    }
+        return countdowns
+
     def advance_time(self) -> None:
         """Move time forward and process passive effects"""
         print(f"\n[DEBUG] advance_time called")
@@ -194,17 +245,39 @@ class GameState:
             for effect in relic.passive_effects:
                 if effect["type"] == "resource_per_time":
                     # Check requirements if any
+                    can_apply = True
                     if "requirements" in effect:
-                        for res, req in effect["requirements"].items():
-                            if "min" in req and self.resources[res] < req["min"]:
-                                continue
-                            if "max" in req and self.resources[res] > req["max"]:
-                                continue
+                        for req in effect["requirements"]:
+                            if isinstance(req, dict):
+                                if self.resources[req["resource"]] < req["amount"]:
+                                    can_apply = False
+                                    break
+                            else:
+                                # Simple requirement (just resource name)
+                                if self.resources[req] <= 0:
+                                    can_apply = False
+                                    break
                     
-                    # Calculate and apply resource change
-                    intervals = time_delta // effect["interval"]
-                    if intervals > 0:
-                        self.resources[effect["resource"]] += effect["amount"] * intervals
+                    # For resource generation effects, also check if we have supply
+                    if can_apply and effect["type"] == "resource_per_time" and effect["resource"] != "supply":
+                        if self.resources["supply"] <= 0:
+                            can_apply = False
+                    
+                    if can_apply:
+                        key = f"{relic.name}_{effect['resource']}"
+                        if key not in self.effect_timers:
+                            self.effect_timers[key] = 0
+                        
+                        # Calculate how many intervals have passed
+                        time_since_last = self.current_time - self.effect_timers[key]
+                        intervals = time_since_last // effect["interval"]
+                        
+                        if intervals > 0:
+                            # Apply the effect for each interval
+                            self.resources[effect["resource"]] += effect["amount"] * intervals * relic.count
+                            # Update the timer
+                            self.effect_timers[key] = self.current_time
+                            print(f"[DEBUG] Applied {effect['amount'] * intervals * relic.count} {effect['resource']} from {relic.name}")
         
         # Draw new cards
         new_active_cards = [

@@ -735,9 +735,66 @@ class GameWindow(QMainWindow):
             # Add new labels
             if self.game.relics:
                 for relic in self.game.relics:
-                    label = QLabel(f"{relic.name}: {relic.description}")
-                    label.setFont(QFont("Arial", 10))
-                    relics_layout.addWidget(label)
+                    # Create a frame for each relic
+                    relic_frame = QFrame()
+                    relic_frame.setFrameStyle(QFrame.Shape.Box | QFrame.Shadow.Raised)
+                    relic_layout = QVBoxLayout()
+                    
+                    # Name and count
+                    name_label = QLabel(f"{relic.name} (x{relic.count})")
+                    name_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+                    relic_layout.addWidget(name_label)
+                    
+                    # Description
+                    desc_label = QLabel(relic.description)
+                    desc_label.setWordWrap(True)
+                    relic_layout.addWidget(desc_label)
+                    
+                    # Effects
+                    if relic.passive_effects:
+                        effects_label = QLabel("Effects:")
+                        effects_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
+                        relic_layout.addWidget(effects_label)
+                        
+                        # Get countdowns for this relic
+                        countdowns = self.game.get_effect_countdowns()
+                        
+                        for effect in relic.passive_effects:
+                            if effect["type"] == "resource_per_time":
+                                resource = effect["resource"]
+                                amount = effect["amount"] * relic.count  # Multiply by count
+                                interval = effect["interval"]
+                                
+                                # Get countdown info
+                                key = f"{relic.name}_{resource}"
+                                countdown = countdowns.get(key, {})
+                                remaining = countdown.get("remaining", interval)
+                                
+                                # Format the effect text
+                                effect_text = f"  • {resource}: {amount:+} every {interval} time units"
+                                if "requirements" in effect:
+                                    req_text = " (Requires: "
+                                    for req in effect["requirements"]:
+                                        if isinstance(req, dict):
+                                            req_text += f"{req['resource']} >= {req['amount']}, "
+                                        else:
+                                            req_text += f"{req}, "
+                                    req_text = req_text[:-2] + ")"
+                                    effect_text += req_text
+                                
+                                # Add effect text
+                                effect_label = QLabel(effect_text)
+                                effect_label.setStyleSheet("color: #4CAF50;")
+                                relic_layout.addWidget(effect_label)
+                                
+                                # Add countdown on new line
+                                countdown_text = f"    Next effect in: {remaining} time units"
+                                countdown_label = QLabel(countdown_text)
+                                countdown_label.setStyleSheet("color: #666666;")  # Gray color for countdown
+                                relic_layout.addWidget(countdown_label)
+                    
+                    relic_frame.setLayout(relic_layout)
+                    relics_layout.addWidget(relic_frame)
             else:
                 empty_label = QLabel("No relics yet")
                 empty_label.setFont(QFont("Arial", 10))

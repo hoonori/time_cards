@@ -1,0 +1,24 @@
+resources:
+  minerals:
+    name: "Minerals"
+    description: "Basic resource for construction and unit production"
+    initial_amount: 100
+    min_amount: 0
+    max_amount: 1000
+    allow_negative: false
+    
+  supply:
+    name: "Supply"
+    description: "Population capacity for units"
+    initial_amount: 10
+    min_amount: 0
+    max_amount: 200
+    allow_negative: false
+    
+  gas:
+    name: "Vespene Gas"
+    description: "Advanced resource for technology and units"
+    initial_amount: 0
+    min_amount: 0
+    max_amount: 1000
+    allow_negative: false 

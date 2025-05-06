@@ -1,0 +1,61 @@
+relics:
+  scv:
+    name: "SCV Worker"
+    description: "Terran construction and resource gathering unit"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "minerals"
+        amount: 5
+        interval: 5
+      - type: "resource_per_time"
+        resource: "supply"
+        amount: -1
+        interval: 30
+        requirements:
+          supply:
+            min: 1
+            
+  probe:
+    name: "Probe"
+    description: "Protoss worker unit for resource gathering"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "minerals"
+        amount: 6
+        interval: 5
+      - type: "resource_per_time"
+        resource: "gas"
+        amount: 2
+        interval: 5
+      - type: "resource_per_time"
+        resource: "supply"
+        amount: -1
+        interval: 30
+        requirements:
+          supply:
+            min: 1
+            
+  drone:
+    name: "Drone"
+    description: "Zerg worker unit that can also morph into structures"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "minerals"
+        amount: 7
+        interval: 5
+      - type: "resource_per_time"
+        resource: "supply"
+        amount: -1
+        interval: 30
+        requirements:
+          supply:
+            min: 1
+
+  supply_depot:
+    name: "Supply Depot"
+    description: "Increases supply capacity"
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "supply"
+        amount: 8
+        interval: 30 

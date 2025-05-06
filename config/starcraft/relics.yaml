@@ -221,3 +221,19 @@ relics:
         requirements:
           tech:
             min: 2 
+
+  scv:
+    name: "SCV Worker"
+    description: "A Terran construction and resource gathering unit. Each SCV provides mineral income but requires supply."
+    passive_effects:
+      - type: "resource_per_time"
+        resource: "minerals"
+        amount: 5
+        interval: 5
+      - type: "resource_per_time"
+        resource: "supply"
+        amount: -1
+        interval: 30
+        requirements:
+          supply:
+            min: 1  # Requires at least 1 supply to function 
