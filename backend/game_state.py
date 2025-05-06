@@ -168,17 +168,26 @@ class GameState:
     
     def advance_time(self) -> None:
         """Move time forward and process passive effects"""
+        print(f"\n[DEBUG] advance_time called")
+        print(f"[DEBUG] Current time: {self.current_time}")
+        print(f"[DEBUG] Active cards: {[card.title for card in self.active_cards]}")
+        print(f"[DEBUG] Card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
+        
         if not self.active_cards and not self.card_queue:
+            print("[DEBUG] No active cards and no card queue - game is over")
             return  # Game is over
             
         # Find next event time
         next_time = float('inf')
         if self.card_queue:
             next_time = min(card.drawed_at for card in self.card_queue)
+            print(f"[DEBUG] Next event time: {next_time}")
             
         # Move time forward
         time_delta = next_time - self.current_time
+        print(f"[DEBUG] Time delta: {time_delta}")
         self.current_time = next_time
+        print(f"[DEBUG] New current time: {self.current_time}")
         
         # Apply passive effects from relics
         for relic in self.relics:
@@ -202,11 +211,16 @@ class GameState:
             card for card in self.card_queue
             if card.drawed_at == self.current_time
         ]
+        print(f"[DEBUG] New cards to draw: {[card.title for card in new_active_cards]}")
+        
         self.card_queue = [
             card for card in self.card_queue
             if card.drawed_at > self.current_time
         ]
+        print(f"[DEBUG] Remaining card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
+        
         self.active_cards.extend(sorted(new_active_cards, key=lambda x: x.priority))
+        print(f"[DEBUG] Final active cards: {[card.title for card in self.active_cards]}")
     
     def is_game_over(self) -> bool:
         """Check if the game is over"""
