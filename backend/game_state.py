@@ -3,6 +3,7 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass
 from pathlib import Path
 from .game_loader import GameLoader
+import time
 
 @dataclass
 class Card:
@@ -26,6 +27,16 @@ class Card:
     def from_dict(cls, data: Dict) -> 'Card':
         """Create Card object from dictionary"""
         return cls(**data)
+
+@dataclass
+class GameEvent:
+    """Represents a single game event that caused resource changes"""
+    timestamp: int
+    event_type: str  # 'card_choice', 'relic_effect', 'time_advance'
+    source: str  # Card title or relic name
+    description: str
+    resource_changes: Dict[str, int]
+    requirements_met: bool = True
 
 @dataclass
 class Relic:
@@ -63,6 +74,7 @@ class GameState:
         self.active_cards = self._init_starting_cards()
         self.card_queue = []  # Cards to be drawn in future
         self.effect_timers = {}  # Track when effects were last applied
+        self.event_history: List[GameEvent] = []  # Track game events
         
     def _init_resources(self) -> Dict[str, int]:
         """Initialize resources with their starting amounts"""
@@ -144,6 +156,17 @@ class GameState:
             for resource, change in effects["resources"].items():
                 if not self.validate_resource_change(resource, change):
                     return False
+        
+        # Create event for this choice
+        event = GameEvent(
+            timestamp=self.current_time,
+            event_type='card_choice',
+            source=card.title,
+            description=f"Chose: {choice['description']}",
+            resource_changes=effects.get("resources", {}),
+            requirements_met=True
+        )
+        self.event_history.append(event)
         
         # Apply resource changes
         if "resources" in effects:
@@ -273,6 +296,17 @@ class GameState:
                         intervals = time_since_last // effect["interval"]
                         
                         if intervals > 0:
+                            # Create event for this relic effect
+                            event = GameEvent(
+                                timestamp=self.current_time,
+                                event_type='relic_effect',
+                                source=relic.name,
+                                description=f"Passive effect triggered ({intervals} intervals)",
+                                resource_changes={effect["resource"]: effect["amount"] * intervals * relic.count},
+                                requirements_met=True
+                            )
+                            self.event_history.append(event)
+                            
                             # Apply the effect for each interval
                             self.resources[effect["resource"]] += effect["amount"] * intervals * relic.count
                             # Update the timer
@@ -318,7 +352,18 @@ class GameState:
             "resources": self.resources,
             "relics": [relic.to_dict() for relic in self.relics],
             "active_cards": [card.to_dict() for card in self.active_cards],
-            "card_queue": [card.to_dict() for card in self.card_queue]
+            "card_queue": [card.to_dict() for card in self.card_queue],
+            "event_history": [
+                {
+                    "timestamp": event.timestamp,
+                    "event_type": event.event_type,
+                    "source": event.source,
+                    "description": event.description,
+                    "resource_changes": event.resource_changes,
+                    "requirements_met": event.requirements_met
+                }
+                for event in self.event_history
+            ]
         }
 
     @classmethod
@@ -333,5 +378,19 @@ class GameState:
         state.relics = [Relic.from_dict(r_data) for r_data in data["relics"]]
         state.active_cards = [Card.from_dict(c_data) for c_data in data["active_cards"]]
         state.card_queue = [Card.from_dict(q_data) for q_data in data["card_queue"]]
+        
+        # Restore event history
+        if "event_history" in data:
+            state.event_history = [
+                GameEvent(
+                    timestamp=event["timestamp"],
+                    event_type=event["event_type"],
+                    source=event["source"],
+                    description=event["description"],
+                    resource_changes=event["resource_changes"],
+                    requirements_met=event["requirements_met"]
+                )
+                for event in data["event_history"]
+            ]
         
         return state 

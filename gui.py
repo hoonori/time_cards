@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                             QHBoxLayout, QLabel, QPushButton, QFrame, QScrollArea,
                             QGridLayout, QDialog, QSizePolicy, QGroupBox, QTreeWidget,
-                            QTreeWidgetItem, QMessageBox, QRadioButton)
+                            QTreeWidgetItem, QMessageBox, QRadioButton, QTextEdit)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QColor, QPalette
 from backend.game_state import GameState
@@ -544,6 +544,74 @@ class HistoryDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to load state: {str(e)}")
 
+class GameLogDialog(QDialog):
+    """Dialog for viewing the game event log"""
+    def __init__(self, game: GameState, parent=None):
+        super().__init__(parent)
+        self.game = game
+        self.setup_ui()
+        
+    def setup_ui(self):
+        self.setWindowTitle("Game Log")
+        self.setMinimumSize(800, 600)
+        
+        layout = QVBoxLayout()
+        
+        # Create text area for log
+        self.log_text = QTextEdit()
+        self.log_text.setReadOnly(True)
+        self.log_text.setFont(QFont("Consolas", 10))
+        layout.addWidget(self.log_text)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        
+        refresh_btn = QPushButton("Refresh")
+        refresh_btn.clicked.connect(self.update_log)
+        button_layout.addWidget(refresh_btn)
+        
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self.accept)
+        button_layout.addWidget(close_btn)
+        
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+        
+        self.update_log()
+    
+    def update_log(self):
+        """Update the log display with current events"""
+        self.log_text.clear()
+        
+        # Group events by time
+        events_by_time = {}
+        for event in self.game.event_history:
+            if event.timestamp not in events_by_time:
+                events_by_time[event.timestamp] = []
+            events_by_time[event.timestamp].append(event)
+        
+        # Display events chronologically
+        for timestamp in sorted(events_by_time.keys()):
+            self.log_text.append(f"\n=== Time {timestamp} ===")
+            
+            for event in events_by_time[timestamp]:
+                # Format the event header
+                header = f"\n[{event.event_type.upper()}] {event.source}"
+                self.log_text.append(header)
+                
+                # Format the description
+                self.log_text.append(f"Description: {event.description}")
+                
+                # Format resource changes
+                if event.resource_changes:
+                    self.log_text.append("Resource Changes:")
+                    for resource, change in event.resource_changes.items():
+                        sign = "+" if change > 0 else ""
+                        self.log_text.append(f"  • {resource}: {sign}{change}")
+                
+                # Add a separator
+                self.log_text.append("-" * 50)
+
 class GameWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -637,6 +705,11 @@ class GameWindow(QMainWindow):
         history_btn = QPushButton("View History")
         history_btn.clicked.connect(self.show_history)
         controls_layout.addWidget(history_btn)
+        
+        # Add game log button to controls group
+        game_log_btn = QPushButton("Game Log")
+        game_log_btn.clicked.connect(self.show_game_log)
+        controls_layout.addWidget(game_log_btn)
         
         controls_group.setLayout(controls_layout)
         left_layout.addWidget(controls_group)
@@ -914,6 +987,11 @@ class GameWindow(QMainWindow):
             print(f"Successfully loaded state from node {node_id}")
         except ValueError as e:
             QMessageBox.critical(self, "Error", f"Failed to load state: {str(e)}")
+
+    def show_game_log(self):
+        """Show the game log dialog"""
+        dialog = GameLogDialog(self.game, self)
+        dialog.exec()
 
 def main():
     app = QApplication([])
