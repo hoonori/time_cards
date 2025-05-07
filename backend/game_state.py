@@ -74,7 +74,7 @@ class GameState:
         self.resources = self._init_resources()
         self.relics = []
         self.active_cards = self._init_starting_cards()
-        self.card_queue = []  # Cards to be drawn in future
+        self.card_queue = self._init_future_cards()  # Cards to be drawn in future
         self.effect_timers = {}  # Track when effects were last applied
         self.event_history: List[GameEvent] = []  # Track game events
         
@@ -98,6 +98,21 @@ class GameState:
                     choices=card_data["choices"]
                 ))
         return sorted(starting_cards, key=lambda x: x.priority)
+    
+    def _init_future_cards(self) -> List[Card]:
+        """Get cards that are scheduled for future times (drawed_at > 0)"""
+        future_cards = []
+        for card_id, card_data in self.card_config["cards"].items():
+            if card_data.get("drawed_at", None) and card_data["drawed_at"] > 0:
+                future_cards.append(Card(
+                    title=card_data["title"],
+                    description=card_data["description"],
+                    drawed_at=card_data["drawed_at"],
+                    priority=card_data["priority"],
+                    choices=card_data["choices"],
+                    card_type=card_data.get("card_type", "delayed")
+                ))
+        return sorted(future_cards, key=lambda x: (x.drawed_at, x.priority))
     
     def can_make_choice(self, card_index: int, choice_index: int) -> bool:
         """Check if player has required resources/relics for a choice"""
