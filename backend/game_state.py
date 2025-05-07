@@ -62,7 +62,7 @@ class Relic:
         return cls(**data)
 
 class GameState:
-    def __init__(self, config_path: Path, mode: str = "life"):
+    def __init__(self, config_path: Path, mode: str = "life", skip_card_init: bool = False):
         # Load configurations using GameLoader
         config = GameLoader.load_config(mode)
         self.resource_config = config['resource_config']
@@ -73,8 +73,12 @@ class GameState:
         self.current_time = 0
         self.resources = self._init_resources()
         self.relics = []
-        self.active_cards = self._init_starting_cards()
-        self.card_queue = self._init_future_cards()  # Cards to be drawn in future
+        if not skip_card_init:
+            self.active_cards = self._init_starting_cards()
+            self.card_queue = self._init_future_cards()
+        else:
+            self.active_cards = []
+            self.card_queue = []
         self.effect_timers = {}  # Track when effects were last applied
         self.event_history: List[GameEvent] = []  # Track game events
         
@@ -219,7 +223,8 @@ class GameState:
                     description=card_data["description"],
                     drawed_at=self.current_time + next_card["time_offset"],
                     priority=card_data.get("priority", 1),
-                    choices=card_data["choices"]
+                    choices=card_data["choices"],
+                    card_type=card_data.get("card_type", "delayed")
                 ))
                 
         # Remove the card that was chosen
@@ -227,6 +232,9 @@ class GameState:
         
         # If there are other cards at the same time, automatically select the highest priority one
         if self.active_cards:
+            # Stop auto-choice if any immediate cards remain
+            if any(card.card_type == "immediate" for card in self.active_cards):
+                return True
             highest_priority_card = max(self.active_cards, key=lambda x: (x.priority, -x.drawed_at))
             highest_priority_index = self.active_cards.index(highest_priority_card)
             # Find the first available choice
@@ -392,16 +400,12 @@ class GameState:
     @classmethod
     def from_dict(cls, data: Dict, config_path: Path, mode: str) -> 'GameState':
         """Create GameState from dictionary"""
-        # Create new instance with config
-        state = cls(config_path, mode)
-        
-        # Restore state from data
+        state = cls(config_path, mode, skip_card_init=True)
         state.current_time = data["current_time"]
         state.resources = data["resources"]
         state.relics = [Relic.from_dict(r_data) for r_data in data["relics"]]
         state.active_cards = [Card.from_dict(c_data) for c_data in data["active_cards"]]
         state.card_queue = [Card.from_dict(q_data) for q_data in data["card_queue"]]
-        
         # Restore event history
         if "event_history" in data:
             state.event_history = [
@@ -415,5 +419,4 @@ class GameState:
                 )
                 for event in data["event_history"]
             ]
-        
         return state 

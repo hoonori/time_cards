@@ -1001,14 +1001,16 @@ class GameWindow(QMainWindow):
     def jump_to_next_card(self):
         if not self.game.card_queue:
             return
-            
+        
         # Find the next card's time
         next_time = min(card.drawed_at for card in self.game.card_queue)
         
         # Jump to that time
-        while self.game.current_time <= next_time:  # Changed from < to <=
+        while self.game.current_time <= next_time:
             print(f"[DEBUG] Advancing time from {self.game.current_time} to {next_time}")
-            self.game.advance_time()
+            # Stop if advance_time returns False (e.g., due to immediate cards)
+            if not self.game.advance_time():
+                break
             if not self.game.card_queue:  # Break if no more cards
                 break
         
@@ -1049,13 +1051,6 @@ class GameWindow(QMainWindow):
         try:
             loaded_state = self.state_manager.load_state(node_id)
             self.game = loaded_state
-            
-            # If there are cards in the queue, jump to the next card's time
-            if self.game.card_queue:
-                next_time = min(card.drawed_at for card in self.game.card_queue)
-                while self.game.current_time < next_time:
-                    self.game.advance_time()
-            
             self.update_display(force_clear_preview=True)
             print(f"Successfully loaded state from node {node_id}")
         except ValueError as e:
@@ -1067,16 +1062,17 @@ class GameWindow(QMainWindow):
         dialog.exec()
 
     def manual_time_advance(self):
-        """Advance time by the specified amount, regardless of cards (manual time advance)."""
+        # Restrict if there are immediate cards
+        immediate_cards = [card for card in self.game.active_cards if card.card_type == "immediate"]
+        if immediate_cards:
+            QMessageBox.warning(self, "Immediate Cards", 
+                "You must handle all immediate cards before advancing time!")
+            return
+
         amount = self.time_input.value()
-        if hasattr(self.game, 'advance_time_by'):
-            self.game.advance_time_by(amount, ignore_cards=True)
-        else:
-            # Fallback: increment time and process passive effects for the full amount
-            for _ in range(amount):
-                self.game.current_time += 1
-                if hasattr(self.game, '_process_passive_effects'):
-                    self.game._process_passive_effects()
+        for _ in range(amount):
+            if not self.game.advance_time():
+                break
         self.update_display(force_clear_preview=True)
 
 def main():
