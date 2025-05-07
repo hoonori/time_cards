@@ -1,0 +1,22 @@
+cards:
+  command_center:
+    title: "Command Center"
+    description: "Main Terran base structure. Can produce SCVs to gather resources."
+    drawed_at: 0
+    priority: 1
+    card_type: "delayed"
+    choices:
+      - description: "Produce SCV (50 minerals, 1 supply)"
+        requirements:
+          resources:
+            minerals: 50
+            supply: 1
+        effects:
+          resources:
+            minerals: -50
+            supply: -1
+          relics:
+            gain: ["scv"]
+          next_cards:
+            - card: "command_center"
+              time_offset: 5  # Card will be redrawn after 5 time units 
