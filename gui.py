@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                             QHBoxLayout, QLabel, QPushButton, QFrame, QScrollArea,
                             QGridLayout, QDialog, QSizePolicy, QGroupBox, QTreeWidget,
-                            QTreeWidgetItem, QMessageBox, QRadioButton, QTextEdit)
+                            QTreeWidgetItem, QMessageBox, QRadioButton, QTextEdit, QSpinBox)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QColor, QPalette
 from backend.game_state import GameState
@@ -383,6 +383,12 @@ class CardWidget(QFrame):
         
         layout.addLayout(header_layout)
         
+        # Card type indicator
+        if self.card.card_type == "immediate":
+            type_label = QLabel("⚠️ Must be handled now!")
+            type_label.setStyleSheet("color: #FF6B6B; font-weight: bold;")
+            layout.addWidget(type_label)
+        
         # Description
         desc_label = QLabel(self.card.description)
         desc_label.setWordWrap(True)
@@ -612,6 +618,40 @@ class GameLogDialog(QDialog):
                 # Add a separator
                 self.log_text.append("-" * 50)
 
+class TimeAdvanceDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Advance Time")
+        self.setModal(True)
+        
+        layout = QVBoxLayout()
+        
+        # Time input
+        input_layout = QHBoxLayout()
+        input_layout.addWidget(QLabel("Advance time by:"))
+        self.time_input = QSpinBox()
+        self.time_input.setMinimum(1)
+        self.time_input.setMaximum(100)
+        self.time_input.setValue(5)  # Default value
+        input_layout.addWidget(self.time_input)
+        input_layout.addWidget(QLabel("time units"))
+        layout.addLayout(input_layout)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        ok_button = QPushButton("OK")
+        ok_button.clicked.connect(self.accept)
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+        
+        self.setLayout(layout)
+    
+    def get_time_advance(self) -> int:
+        return self.time_input.value()
+
 class GameWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -690,27 +730,47 @@ class GameWindow(QMainWindow):
         # Controls section
         controls_group = QGroupBox("Controls")
         controls_layout = QVBoxLayout()
-        
-        self.advance_btn = QPushButton("Advance Time")  # Store reference
-        self.advance_btn.clicked.connect(self.advance_time)
-        controls_layout.addWidget(self.advance_btn)
-        
-        # Auto jump radio button
+
+        # --- First row: Advance Cards & Auto Advance ---
+        card_advance_layout = QHBoxLayout()
+        self.advance_cards_btn = QPushButton("Advance Cards")
+        self.advance_cards_btn.clicked.connect(self.jump_to_next_card)
+        self.advance_cards_btn.setFixedWidth(140)
+        card_advance_layout.addWidget(self.advance_cards_btn)
+
         self.auto_jump_radio = QRadioButton("Auto Advance")
-        self.auto_jump_radio.setChecked(True)  # Default to checked
+        self.auto_jump_radio.setChecked(True)
         self.auto_jump_radio.toggled.connect(self.toggle_auto_jump)
-        controls_layout.addWidget(self.auto_jump_radio)
-        
-        # Add history button to controls group
+        card_advance_layout.addWidget(self.auto_jump_radio)
+        card_advance_layout.addStretch()
+        controls_layout.addLayout(card_advance_layout)
+
+        # --- Second row: Manual Time Advance ---
+        manual_time_layout = QHBoxLayout()
+        advance_label = QLabel("Advance")
+        manual_time_layout.addWidget(advance_label)
+        self.time_input = QSpinBox()
+        self.time_input.setMinimum(1)
+        self.time_input.setMaximum(100)
+        self.time_input.setValue(5)
+        self.time_input.setFixedWidth(60)
+        manual_time_layout.addWidget(self.time_input)
+        units_label = QLabel("time units")
+        manual_time_layout.addWidget(units_label)
+        self.manual_time_advance_btn = QPushButton("Manual Time Advance")
+        self.manual_time_advance_btn.setFixedWidth(160)
+        self.manual_time_advance_btn.clicked.connect(self.manual_time_advance)
+        manual_time_layout.addWidget(self.manual_time_advance_btn)
+        manual_time_layout.addStretch()
+        controls_layout.addLayout(manual_time_layout)
+
+        # Add history and log buttons as before
         history_btn = QPushButton("View History")
         history_btn.clicked.connect(self.show_history)
         controls_layout.addWidget(history_btn)
-        
-        # Add game log button to controls group
         game_log_btn = QPushButton("Game Log")
         game_log_btn.clicked.connect(self.show_game_log)
         controls_layout.addWidget(game_log_btn)
-        
         controls_group.setLayout(controls_layout)
         left_layout.addWidget(controls_group)
         
@@ -754,6 +814,9 @@ class GameWindow(QMainWindow):
         right_layout.addWidget(cards_group)
         
         main_layout.addWidget(right_panel)
+        
+        # Initial display update
+        self.update_display()
     
     def update_display(self, force_clear_preview=False):
         """
@@ -884,13 +947,16 @@ class GameWindow(QMainWindow):
             card_widget = CardWidget(card, i, self)
             self.cards_layout.addWidget(card_widget)
         
-        # Update advance button state
+        # Update advance cards button state
         has_next_cards = bool(self.game.card_queue)
-        self.advance_btn.setEnabled(has_next_cards)
+        self.advance_cards_btn.setEnabled(has_next_cards)
         if not has_next_cards:
-            self.advance_btn.setText("No More Cards")
+            self.advance_cards_btn.setText("No More Cards")
         else:
-            self.advance_btn.setText("Advance Time")
+            self.advance_cards_btn.setText("Advance Cards")
+        # Manual Time Advance is always enabled
+        self.manual_time_advance_btn.setEnabled(True)
+        self.manual_time_advance_btn.setText("Manual Time Advance")
             
         # Update auto jump radio state
         self.auto_jump_radio.setEnabled(True)  # Always enable the radio button
@@ -949,12 +1015,19 @@ class GameWindow(QMainWindow):
         self.update_display(force_clear_preview=True)  # Force clear preview after jump
     
     def advance_time(self):
-        self.game.advance_time()
-        self.update_display(force_clear_preview=True)  # Force clear preview after time advance
-        
-        # If auto jump is enabled and no active cards remain, advance time again
-        if self.auto_jump and not self.game.active_cards and self.game.card_queue:
-            self.advance_time()
+        # Check if there are any immediate cards
+        immediate_cards = [card for card in self.game.active_cards if card.card_type == "immediate"]
+        if immediate_cards:
+            QMessageBox.warning(self, "Immediate Cards", 
+                "You must handle all immediate cards before advancing time!")
+            return
+            
+        if self.game.advance_time():
+            self.update_display(force_clear_preview=True)
+            
+            # If auto jump is enabled and no active cards remain, advance time again
+            if self.auto_jump and not self.game.active_cards and self.game.card_queue:
+                self.advance_time()
 
     def preview_choice(self, card_index, choice_index):
         """Show a preview of what would happen if this choice was made"""
@@ -992,6 +1065,19 @@ class GameWindow(QMainWindow):
         """Show the game log dialog"""
         dialog = GameLogDialog(self.game, self)
         dialog.exec()
+
+    def manual_time_advance(self):
+        """Advance time by the specified amount, regardless of cards (manual time advance)."""
+        amount = self.time_input.value()
+        if hasattr(self.game, 'advance_time_by'):
+            self.game.advance_time_by(amount, ignore_cards=True)
+        else:
+            # Fallback: increment time and process passive effects for the full amount
+            for _ in range(amount):
+                self.game.current_time += 1
+                if hasattr(self.game, '_process_passive_effects'):
+                    self.game._process_passive_effects()
+        self.update_display(force_clear_preview=True)
 
 def main():
     app = QApplication([])

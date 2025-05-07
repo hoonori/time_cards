@@ -4,8 +4,9 @@ cards:
     description: "Main Terran base structure. Can produce SCVs to gather resources."
     drawed_at: 0
     priority: 1
+    card_type: "delayed"  # Can be used later
     choices:
-      - description: "Produce SCV (50 minerals)"
+      - description: "Produce SCV (50 minerals, 1 supply)"
         requirements:
           resources:
             minerals: 50
@@ -13,7 +14,27 @@ cards:
         effects:
           resources:
             minerals: -50
-          add_relic: "scv"
+            supply: -1
+          relics:
+            gain: ["scv"]
           next_cards:
             - card: "command_center"
-              time_offset: 5  # Card will be redrawn after 5 time units 
+              time_offset: 5  # Card will be redrawn after 5 time units
+
+  zerg_attack:
+    title: "Zerg Attack!"
+    description: "Zerg forces are attacking! Defend the base!"
+    drawed_at: 30
+    priority: 1
+    card_type: "immediate"  # Must be handled immediately
+    choices:
+      - description: "Defend with Marines (30 minerals)"
+        requirements:
+          resources:
+            minerals: 30
+        effects:
+          resources:
+            minerals: -30
+          next_cards:
+            - card: "command_center"
+              time_offset: 5  # Return to normal operations after defense 
