@@ -294,19 +294,25 @@ class GameState:
                     if "requirements" in effect:
                         for req in effect["requirements"]:
                             if isinstance(req, dict):
-                                if self.resources[req["resource"]] < req["amount"]:
-                                    can_apply = False
-                                    break
+                                # Check resource requirements
+                                if "resource" in req:
+                                    # If the requirement is stackable, multiply by relic count
+                                    required_amount = req["amount"]
+                                    if req.get("stackable", False):
+                                        required_amount *= relic.count
+                                    if self.resources[req["resource"]] < required_amount:
+                                        can_apply = False
+                                        break
+                                # Check relic requirements
+                                elif "relic" in req:
+                                    if not any(r.name == req["relic"] for r in self.relics):
+                                        can_apply = False
+                                        break
                             else:
                                 # Simple requirement (just resource name)
                                 if self.resources[req] <= 0:
                                     can_apply = False
                                     break
-                    
-                    # For resource generation effects, also check if we have supply
-                    if can_apply and effect["type"] == "resource_per_time" and effect["resource"] != "supply":
-                        if self.resources["supply"] <= 0:
-                            can_apply = False
                     
                     if can_apply:
                         key = f"{relic.name}_{effect['resource']}"
