@@ -19,4 +19,27 @@ cards:
             gain: ["scv"]
           next_cards:
             - card: "command_center"
-              time_offset: 5  # Card will be redrawn after 5 time units 
+              time_offset: 5  # Card will be redrawn after 5 time units
+            - card: "build_structure"
+              time_offset: 0  # Draw immediately when SCV is created
+
+  build_structure:
+    title: "Build Structure"
+    description: "Build a new structure using your SCV."
+    drawed_at: null  # Will be drawn when SCV is created
+    priority: 2
+    card_type: "delayed"
+    requirements:
+      relics: ["scv"]  # Only draw when SCV is present
+    choices:
+      - description: "Build Supply Depot (150 minerals)"
+        requirements:
+          resources:
+            minerals: 150
+        effects:
+          resources:
+            minerals: -150
+            supply: 8  # Supply Depot provides 8 supply
+          next_cards:
+            - card: "build_structure"
+              time_offset: 10  # Card will be redrawn after 10 time units 

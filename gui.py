@@ -1006,14 +1006,11 @@ class GameWindow(QMainWindow):
         next_time = min(card.drawed_at for card in self.game.card_queue)
         
         # Jump to that time
-        while self.game.current_time <= next_time:
-            print(f"[DEBUG] Advancing time from {self.game.current_time} to {next_time}")
-            # Stop if advance_time returns False (e.g., due to immediate cards)
-            if not self.game.advance_time():
-                break
-            if not self.game.card_queue:  # Break if no more cards
-                break
-        
+        print(f"[DEBUG] Jumping to next card time: {next_time}")
+        if not self.game.advance_time(mode="advance_cards"):
+            print("[DEBUG] Failed to advance to next card time")
+            return
+            
         self.update_display(force_clear_preview=True)  # Force clear preview after jump
     
     def advance_time(self):
@@ -1024,7 +1021,7 @@ class GameWindow(QMainWindow):
                 "You must handle all immediate cards before advancing time!")
             return
             
-        if self.game.advance_time():
+        if self.game.advance_time(mode="auto"):
             self.update_display(force_clear_preview=True)
             
             # If auto jump is enabled and no active cards remain, advance time again
@@ -1062,17 +1059,37 @@ class GameWindow(QMainWindow):
         dialog.exec()
 
     def manual_time_advance(self):
+        print("\n[DEBUG] ===== manual_time_advance called =====")
         # Restrict if there are immediate cards
         immediate_cards = [card for card in self.game.active_cards if card.card_type == "immediate"]
         if immediate_cards:
+            print(f"[DEBUG] Cannot advance: found immediate cards: {[card.title for card in immediate_cards]}")
             QMessageBox.warning(self, "Immediate Cards", 
                 "You must handle all immediate cards before advancing time!")
             return
 
         amount = self.time_input.value()
-        for _ in range(amount):
-            if not self.game.advance_time():
+        print(f"[DEBUG] Attempting to advance time by {amount} units")
+        for i in range(amount):
+            print(f"[DEBUG] Manual advance iteration {i+1}/{amount}")
+            print(f"[DEBUG] Current time before advance: {self.game.current_time}")
+            print(f"[DEBUG] Current active cards: {[card.title for card in self.game.active_cards]}")
+            
+            # In manual mode, we should advance time even if there are non-immediate cards
+            if not self.game.advance_time(mode="manual"):
+                print("[DEBUG] advance_time returned False, stopping manual advance")
                 break
+                
+            # Only stop if we drew any immediate cards
+            immediate_cards = [card for card in self.game.active_cards if card.card_type == "immediate"]
+            if immediate_cards:
+                print(f"[DEBUG] Immediate cards drawn during advance, stopping manual advance")
+                print(f"[DEBUG] Immediate cards: {[card.title for card in immediate_cards]}")
+                break
+                
+            print(f"[DEBUG] Successfully advanced to time {self.game.current_time}")
+            
+        print("[DEBUG] ===== End of manual_time_advance =====")
         self.update_display(force_clear_preview=True)
 
 def main():
