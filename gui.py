@@ -823,6 +823,11 @@ class GameWindow(QMainWindow):
         Update the display while maintaining preview state unless forced to clear
         force_clear_preview: if True, clear preview regardless of current state
         """
+        print("\n[DEBUG] ===== update_display called =====")
+        print(f"[DEBUG] Current time: {self.game.current_time}")
+        print(f"[DEBUG] Active cards before update: {[(card.title, card.drawed_at) for card in self.game.active_cards]}")
+        print(f"[DEBUG] Card queue before update: {[(card.title, card.drawed_at) for card in self.game.card_queue]}")
+        
         # Update time
         self.time_label.setText(f"Time: {self.game.current_time}")
         
@@ -937,13 +942,16 @@ class GameWindow(QMainWindow):
                 relics_layout.addWidget(empty_label)
         
         # Update timeline
+        print("[DEBUG] Updating timeline grid...")
         self.timeline_grid.update_cards(self.game.card_queue, self)
         
         # Clear and update active cards
+        print("[DEBUG] Updating active cards display...")
         for i in reversed(range(self.cards_layout.count())):
             self.cards_layout.itemAt(i).widget().setParent(None)
             
         for i, card in enumerate(self.game.active_cards):
+            print(f"[DEBUG] Adding card to display: {card.title} (time: {card.drawed_at})")
             card_widget = CardWidget(card, i, self)
             self.cards_layout.addWidget(card_widget)
         
@@ -961,6 +969,9 @@ class GameWindow(QMainWindow):
         # Update auto jump radio state
         self.auto_jump_radio.setEnabled(True)  # Always enable the radio button
         # Don't change the checked state of auto jump radio
+        
+        print(f"[DEBUG] Active cards after update: {[(card.title, card.drawed_at) for card in self.game.active_cards]}")
+        print("[DEBUG] ===== End of update_display =====")
     
     def show_card_details(self, card):
         dialog = CardDetailsDialog(card, self)
@@ -1073,7 +1084,8 @@ class GameWindow(QMainWindow):
         for i in range(amount):
             print(f"[DEBUG] Manual advance iteration {i+1}/{amount}")
             print(f"[DEBUG] Current time before advance: {self.game.current_time}")
-            print(f"[DEBUG] Current active cards: {[card.title for card in self.game.active_cards]}")
+            print(f"[DEBUG] Current active cards: {[(card.title, card.drawed_at) for card in self.game.active_cards]}")
+            print(f"[DEBUG] Current card queue: {[(card.title, card.drawed_at) for card in self.game.card_queue]}")
             
             # In manual mode, we should advance time even if there are non-immediate cards
             if not self.game.advance_time(mode="manual"):
@@ -1088,6 +1100,8 @@ class GameWindow(QMainWindow):
                 break
                 
             print(f"[DEBUG] Successfully advanced to time {self.game.current_time}")
+            print(f"[DEBUG] Active cards after advance: {[(card.title, card.drawed_at) for card in self.game.active_cards]}")
+            print(f"[DEBUG] Card queue after advance: {[(card.title, card.drawed_at) for card in self.game.card_queue]}")
             
         print("[DEBUG] ===== End of manual_time_advance =====")
         self.update_display(force_clear_preview=True)

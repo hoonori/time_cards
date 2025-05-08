@@ -278,10 +278,15 @@ class GameState:
         # Draw new cards
         new_active_cards = []
         print(f"\n[DEBUG] === Drawing cards at time {self.current_time} ===")
+        print(f"[DEBUG] Initial active cards: {[card.title for card in self.active_cards]}")
+        print(f"[DEBUG] Initial card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
+        
         for card in self.card_queue:
             print(f"\n[DEBUG] Processing card in queue: {card.title}")
             print(f"[DEBUG] Card drawed_at: {card.drawed_at}")
             print(f"[DEBUG] Current time: {self.current_time}")
+            print(f"[DEBUG] Card already in active cards: {card.title in [c.title for c in self.active_cards]}")
+            
             if card.drawed_at <= self.current_time:
                 print(f"[DEBUG] Card {card.title} is due to be drawn")
                 print(f"[DEBUG] Card requirements: {card.requirements}")
@@ -300,16 +305,20 @@ class GameState:
                             can_draw = False
                             print(f"[DEBUG] Card {card.title} cannot be drawn: missing required relics")
                 if can_draw:
-                    new_active_cards.append(card)
-                    print(f"[DEBUG] Card {card.title} will be drawn")
+                    if card.title not in [c.title for c in self.active_cards]:
+                        new_active_cards.append(card)
+                        print(f"[DEBUG] Card {card.title} will be drawn")
+                    else:
+                        print(f"[DEBUG] Card {card.title} already in active cards, skipping")
             else:
                 print(f"[DEBUG] Card {card.title} is not due yet (drawed_at: {card.drawed_at})")
         
         print(f"\n[DEBUG] New cards to draw: {[card.title for card in new_active_cards]}")
         
+        # Only remove cards that were successfully drawn
         self.card_queue = [
             card for card in self.card_queue
-            if card.drawed_at > self.current_time
+            if card not in new_active_cards
         ]
         print(f"[DEBUG] Remaining card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
         
