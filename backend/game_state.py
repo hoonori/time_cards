@@ -75,6 +75,78 @@ class Relic:
         """Create Relic object from dictionary"""
         return cls(**data)
 
+@dataclass
+class PolicyRule:
+    card_title: str
+    choice_description: str
+
+class Policy:
+    def __init__(self):
+        self.rules: List[PolicyRule] = []
+        self.target_time: Optional[int] = None
+        self.is_relative: bool = False
+        self.is_unlimited: bool = False
+        self.base_time: Optional[int] = None  # 기준 시간
+
+    def add_rule(self, card_title: str, choice_description: str):
+        """Add a new rule to the policy"""
+        self.rules.append(PolicyRule(card_title, choice_description))
+
+    def remove_rule(self, index: int):
+        """Remove a rule at the specified index"""
+        if 0 <= index < len(self.rules):
+            self.rules.pop(index)
+
+    def reorder_rule(self, from_index: int, to_index: int):
+        """Move a rule from one position to another"""
+        if 0 <= from_index < len(self.rules) and 0 <= to_index < len(self.rules):
+            rule = self.rules.pop(from_index)
+            self.rules.insert(to_index, rule)
+
+    def set_target_time(self, time_str: str, current_time: int = 0):
+        """Set the target time for policy execution
+        Args:
+            time_str: Can be:
+                - "-1" for unlimited execution
+                - "+N" for relative time (current_time + N)
+                - "N" for absolute time N
+            current_time: The current time when policy execution starts
+        """
+        if time_str == "-1":
+            self.is_unlimited = True
+            self.is_relative = False
+            self.target_time = None
+            self.base_time = None
+        elif time_str.startswith("+"):
+            self.is_unlimited = False
+            self.is_relative = True
+            self.target_time = int(time_str[1:])
+            self.base_time = current_time  # 기준 시간 저장
+            print(f"[DEBUG][Policy] Set relative target_time: base_time={self.base_time}, target_time={self.target_time}")
+        else:
+            self.is_unlimited = False
+            self.is_relative = False
+            self.target_time = int(time_str)
+            self.base_time = None
+            print(f"[DEBUG][Policy] Set absolute target_time: {self.target_time}")
+
+    def get_target_time(self, current_time: int) -> Optional[int]:
+        """Get the actual target time based on current time"""
+        if self.is_unlimited:
+            return None
+        if self.is_relative:
+            return (self.base_time or 0) + self.target_time
+        return self.target_time
+
+    def find_matching_choice(self, card: Card) -> Optional[int]:
+        """Find the index of the first matching choice for a card based on policy rules"""
+        for rule in self.rules:
+            if rule.card_title == card.title:
+                for i, choice in enumerate(card.choices):
+                    if choice["description"] == rule.choice_description:
+                        return i
+        return None
+
 class GameState:
     def __init__(self, config_path: Path, mode: str = "life", skip_card_init: bool = False):
         # Load configurations using GameLoader
@@ -93,8 +165,10 @@ class GameState:
         else:
             self.active_cards = []
             self.card_queue = []
+        print(f"[DEBUG][GameState] Initialized active_cards: {[ (c.title, c.drawed_at, [ch['description'] for ch in c.choices]) for c in self.active_cards ]}")
         self.effect_timers = {}  # Track when effects were last applied
         self.event_history: List[GameEvent] = []  # Track game events
+        self.policy = Policy()  # Initialize policy
         
     def _init_resources(self) -> Dict[str, int]:
         """Initialize resources with their starting amounts"""
@@ -117,6 +191,7 @@ class GameState:
                     card_type=card_data.get("card_type", "delayed"),
                     requirements=card_data.get("requirements")  # Pass requirements from card config
                 ))
+        print(f"[DEBUG][GameState] _init_starting_cards: {[ (c.title, c.drawed_at, [ch['description'] for ch in c.choices]) for c in starting_cards ]}")
         return sorted(starting_cards, key=lambda x: x.priority)
     
     def _init_future_cards(self) -> List[Card]:
@@ -654,3 +729,55 @@ class GameState:
         
         print(f"[DEBUG] ===== End of manual_time_advance =====")
         return True 
+
+    def execute_policy(self) -> bool:
+        """Execute the current policy. Returns True if policy execution should continue."""
+        print(f"\n[DEBUG] === Executing policy at time {self.current_time} ===")
+        
+        # Check if we've reached the target time
+        target_time = self.policy.get_target_time(self.current_time)
+        if target_time is not None and self.current_time >= target_time:
+            print(f"[DEBUG] Reached target time {target_time}, stopping policy execution")
+            return False
+
+        # Check if we have any active cards
+        if not self.active_cards:
+            print("[DEBUG] No active cards, advancing time")
+            return self.advance_time(mode="auto")
+
+        # Find the first card that has a matching policy choice
+        found_match = False
+        for i, card in enumerate(self.active_cards):
+            choice_index = self.policy.find_matching_choice(card)
+            if choice_index is not None and self.can_make_choice(i, choice_index):
+                print(f"[DEBUG] Found matching policy choice for {card.title}: {card.choices[choice_index]['description']}")
+                self.make_choice(i, choice_index)
+                found_match = True
+                return True
+
+        # If we get here, we have cards but none match the policy or are selectable
+        print("[DEBUG] No matching policy choices found or none are selectable.")
+        # Check if any card is selectable at all
+        any_selectable = False
+        for i, card in enumerate(self.active_cards):
+            for j, choice in enumerate(card.choices):
+                if self.can_make_choice(i, j):
+                    any_selectable = True
+                    break
+            if any_selectable:
+                break
+        if not any_selectable:
+            print("[DEBUG] No selectable choices for any active card. Advancing time (manual mode).")
+            advanced = self.manual_time_advance(1)
+            if not advanced:
+                print("[DEBUG] Time could not be advanced (manual). Stopping policy execution to prevent infinite loop.")
+                return False
+            return True
+        else:
+            print("[DEBUG] There are selectable choices, but none match the policy. Stopping policy execution.")
+            return False
+
+    def run_policy(self) -> None:
+        """Run the policy until it stops"""
+        while self.execute_policy():
+            pass 

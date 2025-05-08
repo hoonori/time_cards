@@ -1,9 +1,10 @@
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                             QHBoxLayout, QLabel, QPushButton, QFrame, QScrollArea,
                             QGridLayout, QDialog, QSizePolicy, QGroupBox, QTreeWidget,
-                            QTreeWidgetItem, QMessageBox, QRadioButton, QTextEdit, QSpinBox)
+                            QTreeWidgetItem, QMessageBox, QRadioButton, QTextEdit, QSpinBox,
+                            QComboBox, QLineEdit)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont, QColor, QPalette
+from PyQt6.QtGui import QFont, QColor, QPalette, QAction
 from backend.game_state import GameState
 from backend.state_history import StateManager
 from pathlib import Path
@@ -668,6 +669,136 @@ class TimeAdvanceDialog(QDialog):
     def get_time_advance(self) -> int:
         return self.time_input.value()
 
+class PolicyPanel(QGroupBox):
+    def __init__(self, game_window):
+        super().__init__("Policy Panel")
+        self.game_window = game_window
+        self.setup_ui()
+
+    def setup_ui(self):
+        layout = QVBoxLayout()
+
+        # Rules list
+        self.rules_list = QTreeWidget()
+        self.rules_list.setHeaderLabels(["Card", "Choice"])
+        self.rules_list.setDragDropMode(QTreeWidget.DragDropMode.InternalMove)
+        self.rules_list.itemChanged.connect(self.on_rule_moved)
+        layout.addWidget(self.rules_list)
+
+        # Add rule section
+        add_rule_layout = QHBoxLayout()
+        self.card_combo = QComboBox()
+        self.choice_combo = QComboBox()
+        add_btn = QPushButton("Add Rule")
+        add_btn.clicked.connect(self.add_rule)
+        add_rule_layout.addWidget(self.card_combo)
+        add_rule_layout.addWidget(self.choice_combo)
+        add_rule_layout.addWidget(add_btn)
+        layout.addLayout(add_rule_layout)
+
+        # Run until section
+        run_until_layout = QHBoxLayout()
+        run_until_layout.addWidget(QLabel("Run Until:"))
+        self.run_until_input = QLineEdit()
+        self.run_until_input.setPlaceholderText("e.g., 10, +10, or -1")
+        run_until_layout.addWidget(self.run_until_input)
+        layout.addLayout(run_until_layout)
+
+        # Run policy button
+        self.run_policy_btn = QPushButton("Run Policy")
+        self.run_policy_btn.clicked.connect(self.run_policy)
+        layout.addWidget(self.run_policy_btn)
+
+        self.setLayout(layout)
+        self.update_card_choices()
+
+    def update_card_choices(self):
+        self.card_combo.clear()
+        self.choice_combo.clear()
+
+        # 모든 카드 타이틀을 config에서 가져오기
+        all_card_titles = [card_data["title"] for card_data in self.game_window.game.card_config["cards"].values()]
+        print(f"[DEBUG][PolicyPanel] All card titles from config: {all_card_titles}")
+
+        for title in sorted(set(all_card_titles)):
+            self.card_combo.addItem(title)
+
+        self.card_combo.currentTextChanged.connect(self.update_choices)
+        self.update_choices()
+
+    def update_choices(self):
+        self.choice_combo.clear()
+        selected_card = self.card_combo.currentText()
+
+        # config에서 해당 카드의 choices 가져오기
+        card_data = None
+        for c in self.game_window.game.card_config["cards"].values():
+            if c["title"] == selected_card:
+                card_data = c
+                break
+
+        if card_data and "choices" in card_data:
+            for choice in card_data["choices"]:
+                self.choice_combo.addItem(choice["description"])
+            print(f"[DEBUG][PolicyPanel] Choices for {selected_card}: {[choice['description'] for choice in card_data['choices']]}")
+        else:
+            print(f"[DEBUG][PolicyPanel] No choices found for {selected_card}")
+
+    def add_rule(self):
+        """Add a new rule to the policy"""
+        card_title = self.card_combo.currentText()
+        choice_desc = self.choice_combo.currentText()
+        if card_title and choice_desc:
+            self.game_window.game.policy.add_rule(card_title, choice_desc)
+            self.update_rules_list()
+
+    def update_rules_list(self):
+        """Update the rules list display"""
+        self.rules_list.clear()
+        for rule in self.game_window.game.policy.rules:
+            item = QTreeWidgetItem([rule.card_title, rule.choice_description])
+            self.rules_list.addTopLevelItem(item)
+
+    def on_rule_moved(self, item, column):
+        """Handle rule reordering"""
+        print(f"\n[DEBUG] === Rule moved ===")
+        print(f"[DEBUG] Item: {item.text(0)} - {item.text(1)}")
+        print(f"[DEBUG] Column: {column}")
+        
+        # Get the new index
+        new_index = self.rules_list.indexOfTopLevelItem(item)
+        print(f"[DEBUG] New index: {new_index}")
+        
+        # Get the old index by finding the rule in the policy
+        old_index = None
+        for i, rule in enumerate(self.game_window.game.policy.rules):
+            if rule.card_title == item.text(0) and rule.choice_description == item.text(1):
+                old_index = i
+                break
+        
+        if old_index is not None:
+            print(f"[DEBUG] Old index: {old_index}")
+            self.game_window.game.policy.reorder_rule(old_index, new_index)
+            self.update_rules_list()
+        else:
+            print("[DEBUG] Could not find rule in policy")
+        print(f"[DEBUG] === End of rule moved ===\n")
+
+    def run_policy(self):
+        """Run the policy with the specified target time"""
+        time_str = self.run_until_input.text().strip()
+        if not time_str:
+            QMessageBox.warning(self, "Error", "Please specify a target time")
+            return
+
+        try:
+            # 현재 게임 시간 전달
+            self.game_window.game.policy.set_target_time(time_str, self.game_window.game.current_time)
+            self.game_window.game.run_policy()
+            self.game_window.update_display()
+        except ValueError as e:
+            QMessageBox.warning(self, "Error", str(e))
+
 class GameWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -697,143 +828,115 @@ class GameWindow(QMainWindow):
         self.update_display()
     
     def setup_ui(self):
-        self.setWindowTitle(f"Time Cards Game - {self.mode.capitalize()} Mode")
-        self.setMinimumSize(1200, 800)  # Increased minimum width for split layout
+        # Create main widget and layout
+        main_widget = QWidget()
+        self.setCentralWidget(main_widget)
+        main_layout = QHBoxLayout(main_widget)
         
-        # Central widget with horizontal split
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        main_layout = QHBoxLayout(central_widget)  # Changed to horizontal layout
-        
-        # Left panel for stats and controls
+        # Left panel (existing UI)
         left_panel = QWidget()
-        left_panel.setMinimumWidth(300)
-        left_panel.setMaximumWidth(400)
         left_layout = QVBoxLayout(left_panel)
         
-        # Stats section
-        stats_group = QGroupBox("Stats")
-        stats_layout = QVBoxLayout()
-        
-        self.time_label = QLabel()
+        # Time label
+        self.time_label = QLabel(f"Time: {self.game.current_time}")
         self.time_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        stats_layout.addWidget(self.time_label)
+        left_layout.addWidget(self.time_label)
         
-        # Resources with individual labels for better visibility
-        self.resource_labels = {}  # Store resource labels in a dict for easy access
-        for resource in self.game.resource_config['resources']:
-            label = QLabel()
-            label.setFont(QFont("Arial", 10))
+        # Resources group
+        resources_group = QGroupBox("Resources")
+        resources_layout = QVBoxLayout()
+        self.resource_labels = {}
+        for resource, amount in self.game.resources.items():
+            label = QLabel(f"{resource}: {amount}")
             self.resource_labels[resource] = label
-            stats_layout.addWidget(label)
+            resources_layout.addWidget(label)
+        resources_group.setLayout(resources_layout)
+        left_layout.addWidget(resources_group)
         
-        stats_group.setLayout(stats_layout)
-        left_layout.addWidget(stats_group)
-        
-        # Relics section
-        self.relics_group = QGroupBox("Relics")  # Store reference to relics group
-        self.relics_group.setObjectName("Relics")  # Set object name for finding
+        # Relics group
+        self.relics_group = QGroupBox("Relics")
+        self.relics_group.setObjectName("Relics")
         relics_layout = QVBoxLayout()
-        
-        # Initialize with empty state
-        self.empty_relic_label = QLabel("No relics yet")
-        self.empty_relic_label.setFont(QFont("Arial", 10))
-        relics_layout.addWidget(self.empty_relic_label)
-        
         self.relics_group.setLayout(relics_layout)
         left_layout.addWidget(self.relics_group)
         
-        # Controls section
-        controls_group = QGroupBox("Controls")
-        controls_layout = QVBoxLayout()
-
-        # --- First row: Advance Cards & Auto Advance ---
-        card_advance_layout = QHBoxLayout()
-        self.advance_cards_btn = QPushButton("Advance Cards")
-        self.advance_cards_btn.clicked.connect(self.jump_to_next_card)
-        self.advance_cards_btn.setFixedWidth(140)
-        card_advance_layout.addWidget(self.advance_cards_btn)
-
-        self.auto_jump_radio = QRadioButton("Auto Advance")
-        self.auto_jump_radio.setChecked(True)
-        self.auto_jump_radio.toggled.connect(self.toggle_auto_jump)
-        card_advance_layout.addWidget(self.auto_jump_radio)
-        card_advance_layout.addStretch()
-        controls_layout.addLayout(card_advance_layout)
-
-        # --- Second row: Manual Time Advance ---
+        # Timeline grid
+        self.timeline_grid = TimelineGrid(self)
+        left_layout.addWidget(self.timeline_grid)
+        
+        # Active cards
+        cards_group = QGroupBox("Active Cards")
+        self.cards_layout = QHBoxLayout()
+        cards_group.setLayout(self.cards_layout)
+        left_layout.addWidget(cards_group)
+        
+        # Manual time advance + interval in one row
         manual_time_layout = QHBoxLayout()
-        advance_label = QLabel("Advance")
-        manual_time_layout.addWidget(advance_label)
+        manual_time_layout.addWidget(QLabel("Advance by:"))
         self.time_input = QSpinBox()
         self.time_input.setMinimum(1)
         self.time_input.setMaximum(100)
         self.time_input.setValue(5)
-        self.time_input.setFixedWidth(60)
         manual_time_layout.addWidget(self.time_input)
-        units_label = QLabel("time units")
-        manual_time_layout.addWidget(units_label)
+        manual_time_layout.addWidget(QLabel("time units"))
         self.manual_time_advance_btn = QPushButton("Manual Time Advance")
-        self.manual_time_advance_btn.setFixedWidth(160)
         self.manual_time_advance_btn.clicked.connect(self.manual_time_advance)
         manual_time_layout.addWidget(self.manual_time_advance_btn)
-        manual_time_layout.addStretch()
-        controls_layout.addLayout(manual_time_layout)
+        left_layout.addLayout(manual_time_layout)
+        
+        # Time control buttons (auto/advance cards)
+        time_control_layout = QHBoxLayout()
+        self.auto_jump_radio = QRadioButton("Auto Advance")
+        self.auto_jump_radio.setChecked(self.auto_jump)
+        self.auto_jump_radio.toggled.connect(self.toggle_auto_jump)
+        time_control_layout.addWidget(self.auto_jump_radio)
+        self.advance_cards_btn = QPushButton("Advance Cards")
+        self.advance_cards_btn.clicked.connect(self.jump_to_next_card)
+        time_control_layout.addWidget(self.advance_cards_btn)
+        left_layout.addLayout(time_control_layout)
 
-        # Add history and log buttons as before
+        # History and Log buttons in left panel
+        history_log_layout = QHBoxLayout()
         history_btn = QPushButton("View History")
         history_btn.clicked.connect(self.show_history)
-        controls_layout.addWidget(history_btn)
+        history_log_layout.addWidget(history_btn)
         game_log_btn = QPushButton("Game Log")
         game_log_btn.clicked.connect(self.show_game_log)
-        controls_layout.addWidget(game_log_btn)
-        controls_group.setLayout(controls_layout)
-        left_layout.addWidget(controls_group)
+        history_log_layout.addWidget(game_log_btn)
+        left_layout.addLayout(history_log_layout)
+
+        # Add left panel to main layout
+        main_layout.addWidget(left_panel, stretch=2)
         
-        # Add spacer at the bottom of left panel
-        left_layout.addStretch()
+        # Add policy panel
+        self.policy_panel = PolicyPanel(self)
+        main_layout.addWidget(self.policy_panel, stretch=1)
         
-        main_layout.addWidget(left_panel)
+        # Menu bar
+        menubar = self.menuBar()
         
-        # Right panel for timeline and cards
-        right_panel = QWidget()
-        right_layout = QVBoxLayout(right_panel)
+        # File menu
+        file_menu = menubar.addMenu("File")
         
-        # Timeline section
-        timeline_group = QGroupBox("Upcoming Events")
-        timeline_layout = QVBoxLayout()
+        save_action = QAction("Save State", self)
+        save_action.triggered.connect(self.save_game_state)
+        file_menu.addAction(save_action)
         
-        timeline_scroll = QScrollArea()
-        self.timeline_grid = TimelineGrid()
-        timeline_scroll.setWidget(self.timeline_grid)
-        timeline_scroll.setWidgetResizable(True)
-        timeline_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-        timeline_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        timeline_scroll.setMinimumHeight(150)
-        timeline_layout.addWidget(timeline_scroll)
+        load_action = QAction("Load State", self)
+        load_action.triggered.connect(self.load_game_state)
+        file_menu.addAction(load_action)
         
-        timeline_group.setLayout(timeline_layout)
-        right_layout.addWidget(timeline_group)
+        history_action = QAction("View History", self)
+        history_action.triggered.connect(self.show_history)
+        file_menu.addAction(history_action)
         
-        # Active cards section
-        cards_group = QGroupBox("Active Cards")
-        cards_layout = QVBoxLayout()
+        # View menu
+        view_menu = menubar.addMenu("View")
         
-        self.cards_scroll = QScrollArea()
-        self.cards_widget = QWidget()
-        self.cards_layout = QVBoxLayout(self.cards_widget)
-        self.cards_scroll.setWidget(self.cards_widget)
-        self.cards_scroll.setWidgetResizable(True)
-        cards_layout.addWidget(self.cards_scroll)
-        
-        cards_group.setLayout(cards_layout)
-        right_layout.addWidget(cards_group)
-        
-        main_layout.addWidget(right_panel)
-        
-        # Initial display update
-        self.update_display()
-    
+        log_action = QAction("Game Log", self)
+        log_action.triggered.connect(self.show_game_log)
+        view_menu.addAction(log_action)
+
     def update_display(self, force_clear_preview=False):
         """
         Update the display while maintaining preview state unless forced to clear
@@ -1121,6 +1224,10 @@ class GameWindow(QMainWindow):
             
         print("[DEBUG] ===== End of manual_time_advance =====")
         self.update_display(force_clear_preview=True)
+
+    def save_game_state(self):
+        # Implement the logic to save the game state
+        print("Saving game state")
 
 def main():
     app = QApplication([])
