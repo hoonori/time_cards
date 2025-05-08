@@ -419,20 +419,22 @@ class GameState:
         elif mode == "manual":
             print("[DEBUG] Manual mode: can advance if no immediate cards")
             # Already checked for immediate cards above
-            # Draw cards for current time
-            print(f"[DEBUG] Drawing cards for current time {self.current_time}")
-            self._draw_cards()
             
-            # If we drew any immediate cards, don't advance time
-            immediate_cards = [card for card in self.active_cards if card.card_type == "immediate"]
-            if immediate_cards:
-                print(f"[DEBUG] Immediate cards drawn, not advancing time")
-                return True
-                
-            # Advance time and process passive effects
-            print(f"[DEBUG] No immediate cards, advancing time")
+            # Advance time and process passive effects first
+            print(f"[DEBUG] Advancing time from {self.current_time} to {self.current_time + 1}")
             self.current_time += 1
             self._process_passive_effects()
+            
+            # Then draw cards for the new time
+            print(f"[DEBUG] Drawing cards for new time {self.current_time}")
+            self._draw_cards()
+            
+            # If we drew any immediate cards, don't advance further
+            immediate_cards = [card for card in self.active_cards if card.card_type == "immediate"]
+            if immediate_cards:
+                print(f"[DEBUG] Immediate cards drawn, stopping advance")
+                return True
+                
             return True
         elif mode == "advance_cards":
             print("[DEBUG] Advance cards mode: finding next card time")
@@ -528,3 +530,36 @@ class GameState:
                 for event in data["event_history"]
             ]
         return state 
+
+    def manual_time_advance(self, amount: int) -> bool:
+        """Manually advance time by the specified amount"""
+        print(f"\n[DEBUG] ===== manual_time_advance called =====")
+        print(f"[DEBUG] Attempting to advance time by {amount} units")
+        
+        # Check for immediate cards first
+        immediate_cards = [card for card in self.active_cards if card.card_type == "immediate"]
+        if immediate_cards:
+            print(f"[DEBUG] Cannot advance time: {len(immediate_cards)} immediate cards need to be handled")
+            print(f"[DEBUG] Immediate cards: {[card.title for card in immediate_cards]}")
+            return False
+            
+        # Advance time step by step
+        for i in range(amount):
+            print(f"[DEBUG] Manual advance iteration {i+1}/{amount}")
+            print(f"[DEBUG] Current time before advance: {self.current_time}")
+            print(f"[DEBUG] Current active cards: {[(card.title, card.drawed_at) for card in self.active_cards]}")
+            print(f"[DEBUG] Current card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
+            
+            if not self.advance_time(mode="manual"):
+                print(f"[DEBUG] Failed to advance time at iteration {i+1}")
+                return False
+                
+            print(f"[DEBUG] Successfully advanced to time {self.current_time}")
+            print(f"[DEBUG] Active cards after advance: {[(card.title, card.drawed_at) for card in self.active_cards]}")
+            print(f"[DEBUG] Card queue after advance: {[(card.title, card.drawed_at) for card in self.card_queue]}")
+        
+        # Draw cards at the final time
+        print(f"[DEBUG] Drawing cards at final time {self.current_time}")
+        self._draw_cards()
+        print(f"[DEBUG] ===== End of manual_time_advance =====")
+        return True 
