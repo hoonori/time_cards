@@ -168,20 +168,45 @@ class GameState:
             
         return True
 
+    def _check_and_draw_current_cards(self) -> None:
+        """Check and draw any cards that are due at or before current time"""
+        print(f"\n[DEBUG] === Checking for cards to draw at time {self.current_time} ===")
+        print(f"[DEBUG] Current card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
+        
+        # Find cards that are due at or before current time
+        due_cards = [card for card in self.card_queue if card.drawed_at <= self.current_time]
+        if due_cards:
+            print(f"[DEBUG] Found {len(due_cards)} cards due at or before time {self.current_time}")
+            self._draw_cards()
+        else:
+            print(f"[DEBUG] No cards due at or before time {self.current_time}")
+
     def make_choice(self, card_index: int, choice_index: int) -> bool:
         """Apply the effects of a choice"""
+        print(f"\n[DEBUG] === Making choice for card {card_index}, choice {choice_index} ===")
+        print(f"[DEBUG] Current resources before choice: {self.resources}")
+        
         if not self.can_make_choice(card_index, choice_index):
+            print("[DEBUG] Cannot make choice: requirements not met")
             return False
             
         card = self.active_cards[card_index]
         choice = card.choices[choice_index]
         effects = choice.get("effects", {})
         
+        print(f"[DEBUG] Card: {card.title}")
+        print(f"[DEBUG] Choice: {choice['description']}")
+        print(f"[DEBUG] Effects: {effects}")
+        
         # Validate all resource changes before applying them
         if "resources" in effects:
+            print("[DEBUG] Validating resource changes:")
             for resource, change in effects["resources"].items():
+                print(f"[DEBUG] Checking {resource}: current={self.resources[resource]}, change={change}")
                 if not self.validate_resource_change(resource, change):
+                    print(f"[DEBUG] Invalid resource change: {resource} {change}")
                     return False
+                print(f"[DEBUG] Valid resource change: {resource} {change}")
         
         # Create event for this choice
         event = GameEvent(
@@ -196,11 +221,17 @@ class GameState:
         
         # Apply resource changes
         if "resources" in effects:
+            print("[DEBUG] Applying resource changes:")
             for resource, change in effects["resources"].items():
+                old_value = self.resources[resource]
                 self.resources[resource] += change
+                print(f"[DEBUG] {resource}: {old_value} -> {self.resources[resource]} (change: {change})")
+        
+        print(f"[DEBUG] Resources after choice: {self.resources}")
                 
         # Add/remove relics
         if "relics" in effects:
+            print("[DEBUG] Processing relic changes:")
             if "gain" in effects["relics"]:
                 for relic_id in effects["relics"]["gain"]:
                     if relic_id in self.relic_config["relics"]:
@@ -208,19 +239,24 @@ class GameState:
                         # Check if relic already exists
                         existing_relic = next((r for r in self.relics if r.name == relic_data["name"]), None)
                         if existing_relic:
+                            old_count = existing_relic.count
                             existing_relic.count += 1
+                            print(f"[DEBUG] Increased {relic_data['name']} count: {old_count} -> {existing_relic.count}")
                         else:
                             self.relics.append(Relic(
                                 name=relic_data["name"],
                                 description=relic_data["description"],
                                 passive_effects=relic_data["passive_effects"]
                             ))
+                            print(f"[DEBUG] Added new relic: {relic_data['name']}")
             if "lose" in effects["relics"]:
                 for relic_id in effects["relics"]["lose"]:
                     self.relics = [r for r in self.relics if r.name != relic_id]
+                    print(f"[DEBUG] Removed relic: {relic_id}")
                     
         # Queue next cards
         if "next_cards" in effects:
+            print("[DEBUG] Queueing next cards:")
             for next_card in effects["next_cards"]:
                 card_data = self.card_config["cards"][next_card["card"]]
                 draw_time = self.current_time + next_card["time_offset"]
@@ -234,23 +270,45 @@ class GameState:
                     card_type=card_data.get("card_type", "delayed"),
                     requirements=card_data.get("requirements")  # Pass requirements from card config
                 ))
+            
+            # After queueing new cards, check if any are due to be drawn
+            self._check_and_draw_current_cards()
                 
         # Remove the card that was chosen
         self.active_cards.pop(card_index)
+        print(f"[DEBUG] Removed card from active cards: {card.title}")
         
         # If there are other cards at the same time, automatically select the highest priority one
+        # BUT only if they were already active before this choice was made
         if self.active_cards:
             # Stop auto-choice if any immediate cards remain
             if any(card.card_type == "immediate" for card in self.active_cards):
+                print("[DEBUG] Stopping auto-choice due to immediate cards")
                 return True
-            highest_priority_card = max(self.active_cards, key=lambda x: (x.priority, -x.drawed_at))
-            highest_priority_index = self.active_cards.index(highest_priority_card)
-            # Find the first available choice
-            for choice_idx in range(len(highest_priority_card.choices)):
-                if self.can_make_choice(highest_priority_index, choice_idx):
-                    self.make_choice(highest_priority_index, choice_idx)
-                    break
+                
+            # Get the current time to identify newly drawn cards
+            current_time = self.current_time
+            
+            # Filter out cards that were just drawn (they will have the current time)
+            existing_cards = [card for card in self.active_cards if card.drawed_at < current_time]
+            if existing_cards:
+                # Only auto-select if this wasn't an auto-selected choice
+                if not hasattr(self, '_auto_selecting'):
+                    self._auto_selecting = True
+                    highest_priority_card = max(existing_cards, key=lambda x: (x.priority, -x.drawed_at))
+                    highest_priority_index = self.active_cards.index(highest_priority_card)
+                    print(f"[DEBUG] Auto-selecting highest priority existing card: {highest_priority_card.title}")
+                    # Find the first available choice
+                    for choice_idx in range(len(highest_priority_card.choices)):
+                        if self.can_make_choice(highest_priority_index, choice_idx):
+                            print(f"[DEBUG] Auto-making choice {choice_idx} for {highest_priority_card.title}")
+                            self.make_choice(highest_priority_index, choice_idx)
+                            break
+                    self._auto_selecting = False
+            else:
+                print("[DEBUG] No existing cards to auto-select")
         
+        print(f"[DEBUG] === End of make_choice ===\n")
         return True
     
     def get_effect_countdowns(self) -> Dict[str, Dict[str, int]]:
@@ -278,14 +336,23 @@ class GameState:
         # Draw new cards
         new_active_cards = []
         print(f"\n[DEBUG] === Drawing cards at time {self.current_time} ===")
-        print(f"[DEBUG] Initial active cards: {[card.title for card in self.active_cards]}")
+        print(f"[DEBUG] Initial active cards: {[(card.title, card.drawed_at) for card in self.active_cards]}")
         print(f"[DEBUG] Initial card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
         
         for card in self.card_queue:
             print(f"\n[DEBUG] Processing card in queue: {card.title}")
             print(f"[DEBUG] Card drawed_at: {card.drawed_at}")
             print(f"[DEBUG] Current time: {self.current_time}")
-            print(f"[DEBUG] Card already in active cards: {card.title in [c.title for c in self.active_cards]}")
+            
+            # Check if this exact card instance is already active
+            card_already_active = False
+            for active_card in self.active_cards:
+                if active_card is card:  # Check if it's the same card instance
+                    card_already_active = True
+                    print(f"[DEBUG] Found exact card instance already active: {active_card.title} (time {active_card.drawed_at})")
+                    break
+            
+            print(f"[DEBUG] Card already in active cards: {card_already_active}")
             
             if card.drawed_at <= self.current_time:
                 print(f"[DEBUG] Card {card.title} is due to be drawn")
@@ -305,15 +372,15 @@ class GameState:
                             can_draw = False
                             print(f"[DEBUG] Card {card.title} cannot be drawn: missing required relics")
                 if can_draw:
-                    if card.title not in [c.title for c in self.active_cards]:
+                    if not card_already_active:
                         new_active_cards.append(card)
                         print(f"[DEBUG] Card {card.title} will be drawn")
                     else:
-                        print(f"[DEBUG] Card {card.title} already in active cards, skipping")
+                        print(f"[DEBUG] Card {card.title} (time {card.drawed_at}) already in active cards, skipping")
             else:
                 print(f"[DEBUG] Card {card.title} is not due yet (drawed_at: {card.drawed_at})")
         
-        print(f"\n[DEBUG] New cards to draw: {[card.title for card in new_active_cards]}")
+        print(f"\n[DEBUG] New cards to draw: {[(card.title, card.drawed_at) for card in new_active_cards]}")
         
         # Only remove cards that were successfully drawn
         self.card_queue = [
@@ -323,11 +390,15 @@ class GameState:
         print(f"[DEBUG] Remaining card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
         
         self.active_cards.extend(sorted(new_active_cards, key=lambda x: x.priority))
-        print(f"[DEBUG] Final active cards: {[card.title for card in self.active_cards]}")
+        print(f"[DEBUG] Final active cards: {[(card.title, card.drawed_at) for card in self.active_cards]}")
         print(f"[DEBUG] === End of drawing cards ===\n")
 
     def _process_passive_effects(self) -> None:
         """Process passive effects from relics"""
+        print(f"\n[DEBUG] === Processing passive effects at time {self.current_time} ===")
+        print(f"[DEBUG] Current resources before effects: {self.resources}")
+        print(f"[DEBUG] Current relics: {[(r.name, r.count) for r in self.relics]}")
+        
         # Apply passive effects from relics
         for relic in self.relics:
             for effect in relic.passive_effects:
@@ -345,16 +416,19 @@ class GameState:
                                         required_amount *= relic.count
                                     if self.resources[req["resource"]] < required_amount:
                                         can_apply = False
+                                        print(f"[DEBUG] Cannot apply effect: {req['resource']} < {required_amount}")
                                         break
                                 # Check relic requirements
                                 elif "relic" in req:
                                     if not any(r.name == req["relic"] for r in self.relics):
                                         can_apply = False
+                                        print(f"[DEBUG] Cannot apply effect: missing required relic {req['relic']}")
                                         break
                             else:
                                 # Simple requirement (just resource name)
                                 if self.resources[req] <= 0:
                                     can_apply = False
+                                    print(f"[DEBUG] Cannot apply effect: {req} <= 0")
                                     break
                     
                     if can_apply:
@@ -379,24 +453,30 @@ class GameState:
                             self.event_history.append(event)
                             
                             # Apply the effect for each interval
-                            self.resources[effect["resource"]] += effect["amount"] * intervals * relic.count
+                            amount = effect["amount"] * intervals * relic.count
+                            self.resources[effect["resource"]] += amount
                             # Update the timer
                             self.effect_timers[key] = self.current_time
-                            print(f"[DEBUG] Applied {effect['amount'] * intervals * relic.count} {effect['resource']} from {relic.name}")
+                            print(f"[DEBUG] Applied {amount} {effect['resource']} from {relic.name} (intervals: {intervals})")
+        
+        print(f"[DEBUG] Resources after effects: {self.resources}")
+        print(f"[DEBUG] === End of processing passive effects ===\n")
 
-    def advance_time(self, mode: str = "auto") -> bool:
-        """Move time forward and process passive effects. Returns True if time was advanced.
+    def _advance_time_core(self, target_time: int) -> bool:
+        """Core time advancement logic that ensures consistent behavior across all modes.
         
         Args:
-            mode: One of "auto", "manual", or "advance_cards"
-                - auto: Only advance if no active cards (except immediate)
-                - manual: Advance if no immediate cards
-                - advance_cards: Jump to next card time
+            target_time: The time to advance to
+            
+        Returns:
+            bool: True if time was advanced successfully, False otherwise
         """
-        print(f"\n[DEBUG] ===== advance_time called with mode: {mode} =====")
+        print(f"\n[DEBUG] === _advance_time_core called ===")
         print(f"[DEBUG] Current time: {self.current_time}")
-        print(f"[DEBUG] Active cards: {[card.title for card in self.active_cards]}")
+        print(f"[DEBUG] Target time: {target_time}")
+        print(f"[DEBUG] Active cards: {[(card.title, card.drawed_at) for card in self.active_cards]}")
         print(f"[DEBUG] Card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
+        print(f"[DEBUG] Current resources: {self.resources}")
         
         # Check for immediate cards
         immediate_cards = [card for card in self.active_cards if card.card_type == "immediate"]
@@ -409,66 +489,56 @@ class GameState:
             print("[DEBUG] No more cards to process")
             return False
             
+        # Advance time and process passive effects
+        print(f"[DEBUG] Advancing time from {self.current_time} to {target_time}")
+        self.current_time = target_time
+        self._process_passive_effects()
+        
+        # Draw cards for the new time
+        print(f"[DEBUG] Drawing cards for new time {self.current_time}")
+        self._draw_cards()
+        
+        print(f"[DEBUG] Final resources: {self.resources}")
+        print(f"[DEBUG] === End of _advance_time_core ===")
+        return True
+
+    def advance_time(self, mode: str = "auto") -> bool:
+        """Move time forward and process passive effects. Returns True if time was advanced.
+        
+        Args:
+            mode: One of "auto", "manual", or "advance_cards"
+                - auto: Only advance if no active cards (except immediate)
+                - manual: Advance if no immediate cards
+                - advance_cards: Jump to next card time
+        """
+        print(f"\n[DEBUG] ===== advance_time called with mode: {mode} =====")
+        print(f"[DEBUG] Current time: {self.current_time}")
+        print(f"[DEBUG] Active cards: {[(card.title, card.drawed_at) for card in self.active_cards]}")
+        print(f"[DEBUG] Card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
+        
         # Handle different modes
         if mode == "auto":
             print("[DEBUG] Auto mode: checking for any active cards")
             if self.active_cards:
                 print(f"[DEBUG] Have active cards at time {self.current_time}, not advancing time")
-                print(f"[DEBUG] Active cards: {[card.title for card in self.active_cards]}")
                 return False
+            target_time = self.current_time + 1
         elif mode == "manual":
-            print("[DEBUG] Manual mode: can advance if no immediate cards")
-            # Already checked for immediate cards above
-            
-            # Advance time and process passive effects first
-            print(f"[DEBUG] Advancing time from {self.current_time} to {self.current_time + 1}")
-            self.current_time += 1
-            self._process_passive_effects()
-            
-            # Then draw cards for the new time
-            print(f"[DEBUG] Drawing cards for new time {self.current_time}")
-            self._draw_cards()
-            
-            # If we drew any immediate cards, don't advance further
-            immediate_cards = [card for card in self.active_cards if card.card_type == "immediate"]
-            if immediate_cards:
-                print(f"[DEBUG] Immediate cards drawn, stopping advance")
-                return True
-                
-            return True
+            print("[DEBUG] Manual mode: advancing by 1 time unit")
+            target_time = self.current_time + 1
         elif mode == "advance_cards":
             print("[DEBUG] Advance cards mode: finding next card time")
             if not self.card_queue:
                 print("[DEBUG] No more cards in queue")
                 return False
-            next_time = min(card.drawed_at for card in self.card_queue)
-            print(f"[DEBUG] Jumping to next card time: {next_time}")
-            self.current_time = next_time
-            print(f"[DEBUG] Drawing cards at time {self.current_time}")
-            self._draw_cards()
-            # In advance_cards mode, we should stop if any cards were drawn
-            if self.active_cards:
-                print(f"[DEBUG] Cards drawn at time {self.current_time}, stopping advance")
-                print(f"[DEBUG] Active cards after draw: {[card.title for card in self.active_cards]}")
-                return True
-            return True
+            target_time = min(card.drawed_at for card in self.card_queue)
+            print(f"[DEBUG] Jumping to next card time: {target_time}")
+        else:
+            print(f"[DEBUG] Invalid mode: {mode}")
+            return False
             
-        # For auto mode, draw cards for current time
-        print(f"[DEBUG] Drawing cards for current time {self.current_time}")
-        self._draw_cards()
-        
-        # If we drew any cards at current time, don't advance time
-        if self.active_cards:
-            print(f"[DEBUG] Cards drawn at current time {self.current_time}, not advancing time")
-            print(f"[DEBUG] Active cards after draw: {[card.title for card in self.active_cards]}")
-            return True
-            
-        # If no cards were drawn at current time, advance time and process passive effects
-        print(f"[DEBUG] No cards drawn, advancing time from {self.current_time} to {self.current_time + 1}")
-        self.current_time += 1
-        self._process_passive_effects()
-        print(f"[DEBUG] ===== End of advance_time =====")
-        return True
+        # Use core time advancement logic
+        return self._advance_time_core(target_time)
 
     def is_game_over(self) -> bool:
         """Check if the game is over"""
@@ -550,7 +620,8 @@ class GameState:
             print(f"[DEBUG] Current active cards: {[(card.title, card.drawed_at) for card in self.active_cards]}")
             print(f"[DEBUG] Current card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
             
-            if not self.advance_time(mode="manual"):
+            # Use core time advancement logic for each step
+            if not self._advance_time_core(self.current_time + 1):
                 print(f"[DEBUG] Failed to advance time at iteration {i+1}")
                 return False
                 
@@ -558,8 +629,5 @@ class GameState:
             print(f"[DEBUG] Active cards after advance: {[(card.title, card.drawed_at) for card in self.active_cards]}")
             print(f"[DEBUG] Card queue after advance: {[(card.title, card.drawed_at) for card in self.card_queue]}")
         
-        # Draw cards at the final time
-        print(f"[DEBUG] Drawing cards at final time {self.current_time}")
-        self._draw_cards()
         print(f"[DEBUG] ===== End of manual_time_advance =====")
         return True 
