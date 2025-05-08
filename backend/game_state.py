@@ -14,6 +14,7 @@ class Card:
     choices: List[Dict]
     card_type: str = "delayed"  # Default to delayed type
     requirements: Optional[Dict] = None  # Optional requirements for drawing the card
+    stack_count: int = 1  # Initialize stack count to 1
 
     def to_dict(self) -> Dict:
         """Convert Card object to serializable dictionary"""
@@ -24,13 +25,24 @@ class Card:
             "priority": self.priority,
             "choices": self.choices,
             "card_type": self.card_type,
-            "requirements": self.requirements
+            "requirements": self.requirements,
+            "stack_count": self.stack_count
         }
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'Card':
         """Create Card object from dictionary"""
-        return cls(**data)
+        card = cls(
+            title=data["title"],
+            description=data["description"],
+            drawed_at=data["drawed_at"],
+            priority=data["priority"],
+            choices=data["choices"],
+            card_type=data.get("card_type", "delayed"),
+            requirements=data.get("requirements")
+        )
+        card.stack_count = data.get("stack_count", 1)
+        return card
 
 @dataclass
 class GameEvent:
@@ -198,16 +210,6 @@ class GameState:
         print(f"[DEBUG] Choice: {choice['description']}")
         print(f"[DEBUG] Effects: {effects}")
         
-        # Validate all resource changes before applying them
-        if "resources" in effects:
-            print("[DEBUG] Validating resource changes:")
-            for resource, change in effects["resources"].items():
-                print(f"[DEBUG] Checking {resource}: current={self.resources[resource]}, change={change}")
-                if not self.validate_resource_change(resource, change):
-                    print(f"[DEBUG] Invalid resource change: {resource} {change}")
-                    return False
-                print(f"[DEBUG] Valid resource change: {resource} {change}")
-        
         # Create event for this choice
         event = GameEvent(
             timestamp=self.current_time,
@@ -274,9 +276,15 @@ class GameState:
             # After queueing new cards, check if any are due to be drawn
             self._check_and_draw_current_cards()
                 
-        # Remove the card that was chosen
-        self.active_cards.pop(card_index)
-        print(f"[DEBUG] Removed card from active cards: {card.title}")
+        # Handle stacked cards
+        if card.stack_count > 1:
+            # Decrease stack count instead of removing the card
+            card.stack_count -= 1
+            print(f"[DEBUG] Decreased stack count for {card.title} to {card.stack_count}")
+        else:
+            # Remove the card that was chosen
+            self.active_cards.pop(card_index)
+            print(f"[DEBUG] Removed card from active cards: {card.title}")
         
         # If there are other cards at the same time, automatically select the highest priority one
         # BUT only if they were already active before this choice was made
@@ -335,8 +343,9 @@ class GameState:
         """Draw new cards for the current time"""
         # Draw new cards
         new_active_cards = []
+        cards_to_remove = []  # Track cards that should be removed from queue
         print(f"\n[DEBUG] === Drawing cards at time {self.current_time} ===")
-        print(f"[DEBUG] Initial active cards: {[(card.title, card.drawed_at) for card in self.active_cards]}")
+        print(f"[DEBUG] Initial active cards: {[(card.title, card.drawed_at, card.stack_count) for card in self.active_cards]}")
         print(f"[DEBUG] Initial card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
         
         for card in self.card_queue:
@@ -373,24 +382,38 @@ class GameState:
                             print(f"[DEBUG] Card {card.title} cannot be drawn: missing required relics")
                 if can_draw:
                     if not card_already_active:
-                        new_active_cards.append(card)
-                        print(f"[DEBUG] Card {card.title} will be drawn")
+                        # Check if we have a similar card already active (only check title)
+                        similar_card = next(
+                            (c for c in self.active_cards 
+                             if c.title == card.title),  # Only check title, ignore drawed_at
+                            None
+                        )
+                        if similar_card:
+                            # Stack the card
+                            similar_card.stack_count += 1
+                            print(f"[DEBUG] Stacked card {card.title} (new count: {similar_card.stack_count})")
+                            cards_to_remove.append(card)  # Add to removal list when stacked
+                        else:
+                            # Add as new card
+                            new_active_cards.append(card)
+                            print(f"[DEBUG] Card {card.title} will be drawn")
                     else:
                         print(f"[DEBUG] Card {card.title} (time {card.drawed_at}) already in active cards, skipping")
             else:
                 print(f"[DEBUG] Card {card.title} is not due yet (drawed_at: {card.drawed_at})")
         
         print(f"\n[DEBUG] New cards to draw: {[(card.title, card.drawed_at) for card in new_active_cards]}")
+        print(f"[DEBUG] Cards to remove from queue: {[(card.title, card.drawed_at) for card in cards_to_remove]}")
         
-        # Only remove cards that were successfully drawn
+        # Remove cards that were either drawn or stacked
         self.card_queue = [
             card for card in self.card_queue
-            if card not in new_active_cards
+            if card not in new_active_cards and card not in cards_to_remove
         ]
         print(f"[DEBUG] Remaining card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
         
         self.active_cards.extend(sorted(new_active_cards, key=lambda x: x.priority))
-        print(f"[DEBUG] Final active cards: {[(card.title, card.drawed_at) for card in self.active_cards]}")
+        print(f"[DEBUG] Final active cards: {[(card.title, card.drawed_at, card.stack_count) for card in self.active_cards]}")
         print(f"[DEBUG] === End of drawing cards ===\n")
 
     def _process_passive_effects(self) -> None:

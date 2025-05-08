@@ -27,11 +27,20 @@ class TimelineCard(QFrame):
         layout.setSpacing(2)
         layout.setContentsMargins(5, 5, 5, 5)
         
-        # Title
+        # Title and stack count
+        title_layout = QHBoxLayout()
         title_label = QLabel(self.card.title)
         title_label.setFont(QFont("Arial", 8, QFont.Weight.Bold))
         title_label.setWordWrap(True)
-        layout.addWidget(title_label)
+        title_layout.addWidget(title_label)
+        
+        if self.card.stack_count > 1:
+            stack_label = QLabel(f"x{self.card.stack_count}")
+            stack_label.setFont(QFont("Arial", 8, QFont.Weight.Bold))
+            stack_label.setStyleSheet("color: #4CAF50;")
+            title_layout.addWidget(stack_label)
+        
+        layout.addLayout(title_layout)
         
         # Time
         time_label = QLabel(f"{self.card.drawed_at}")
@@ -376,6 +385,13 @@ class CardWidget(QFrame):
         title_label = QLabel(self.card.title)
         title_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         header_layout.addWidget(title_label)
+        
+        # Add stack count if greater than 1
+        if self.card.stack_count > 1:
+            stack_label = QLabel(f"x{self.card.stack_count}")
+            stack_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+            stack_label.setStyleSheet("color: #4CAF50;")
+            header_layout.addWidget(stack_label)
         
         time_label = QLabel(f"{self.card.drawed_at}")
         time_label.setFont(QFont("Arial", 10))
