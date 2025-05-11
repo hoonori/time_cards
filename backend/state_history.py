@@ -47,7 +47,7 @@ class StateManager:
             print(f"History initialized with root node: {self.root_node_id}")
 
     def save_state(self, current_game_state: GameState, message: str = "") -> str:
-        """Save the current game state and return the node ID"""
+        print(f"[DEBUG][STATE_MANAGER] save_state called, message: {message}")
         if self.current_node_id is None:
             raise Exception("StateManager not initialized.")
 
@@ -68,7 +68,7 @@ class StateManager:
             if parent_id and new_node.node_id not in self.nodes[parent_id].child_ids:
                 self.nodes[parent_id].child_ids.append(new_node.node_id)
             self.current_node_id = new_node.node_id
-            print(f"Updated existing state: {new_node.node_id}")
+            print(f"[DEBUG][STATE_MANAGER] Updated existing state: {new_node.node_id}")
             return new_node.node_id
         
         # If it's a new state, add it to the tree
@@ -76,7 +76,7 @@ class StateManager:
         if parent_id:
             self.nodes[parent_id].child_ids.append(new_node.node_id)
         self.current_node_id = new_node.node_id
-        print(f"Saved new state: {new_node.node_id}")
+        print(f"[DEBUG][STATE_MANAGER] Saved new state: {new_node.node_id}")
         return new_node.node_id
 
     def load_state(self, node_id: str) -> GameState:

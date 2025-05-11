@@ -169,6 +169,7 @@ class GameState:
         self.effect_timers = {}  # Track when effects were last applied
         self.event_history: List[GameEvent] = []  # Track game events
         self.policy = Policy()  # Initialize policy
+        self._on_action_callbacks = []  # For observer pattern
         
     def _init_resources(self) -> Dict[str, int]:
         """Initialize resources with their starting amounts"""
@@ -267,6 +268,18 @@ class GameState:
             self._draw_cards()
         else:
             print(f"[DEBUG] No cards due at or before time {self.current_time}")
+
+    def register_on_action_callback(self, callback):
+        print("[DEBUG][CALLBACK] register_on_action_callback called")
+        self._on_action_callbacks.append(callback)
+        print(f"[DEBUG][CALLBACK] callbacks after registration: {self._on_action_callbacks}")
+        print(f"[DEBUG][CALLBACK] game_state id: {id(self)}")
+    
+    def _trigger_on_action(self, message=""):
+        print(f"[DEBUG][CALLBACK] _trigger_on_action called with message: {message}")
+        for cb in self._on_action_callbacks:
+            print("[DEBUG][CALLBACK] Calling callback...")
+            cb(self, message=message)
 
     def make_choice(self, card_index: int, choice_index: int) -> bool:
         """Apply the effects of a choice"""
@@ -392,6 +405,7 @@ class GameState:
                 print("[DEBUG] No existing cards to auto-select")
         
         print(f"[DEBUG] === End of make_choice ===\n")
+        self._trigger_on_action(message="Card choice")
         return True
     
     def get_effect_countdowns(self) -> Dict[str, Dict[str, int]]:
@@ -609,10 +623,10 @@ class GameState:
                 - manual: Advance if no immediate cards
                 - advance_cards: Jump to next card time
         """
-        print(f"\n[DEBUG] ===== advance_time called with mode: {mode} =====")
-        print(f"[DEBUG] Current time: {self.current_time}")
-        print(f"[DEBUG] Active cards: {[(card.title, card.drawed_at) for card in self.active_cards]}")
-        print(f"[DEBUG] Card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
+        print(f"\n[DEBUG][TIME] ===== advance_time called with mode: {mode} =====")
+        print(f"[DEBUG][TIME] Current time: {self.current_time}")
+        print(f"[DEBUG][TIME] Active cards: {[(card.title, card.drawed_at) for card in self.active_cards]}")
+        print(f"[DEBUG][TIME] Card queue: {[(card.title, card.drawed_at) for card in self.card_queue]}")
         
         # Handle different modes
         if mode == "auto":
@@ -636,7 +650,8 @@ class GameState:
             return False
             
         # Use core time advancement logic
-        return self._advance_time_core(target_time)
+        result = self._advance_time_core(target_time)
+        return result
 
     def is_game_over(self) -> bool:
         """Check if the game is over"""
@@ -701,8 +716,8 @@ class GameState:
 
     def manual_time_advance(self, amount: int) -> bool:
         """Manually advance time by the specified amount"""
-        print(f"\n[DEBUG] ===== manual_time_advance called =====")
-        print(f"[DEBUG] Attempting to advance time by {amount} units")
+        print(f"\n[DEBUG][TIME] ===== manual_time_advance called =====")
+        print(f"[DEBUG][TIME] Attempting to advance time by {amount} units from {self.current_time}")
         
         # Check for immediate cards first
         immediate_cards = [card for card in self.active_cards if card.card_type == "immediate"]
@@ -732,12 +747,12 @@ class GameState:
 
     def execute_policy(self) -> bool:
         """Execute the current policy. Returns True if policy execution should continue."""
-        print(f"\n[DEBUG] === Executing policy at time {self.current_time} ===")
-        
-        # Check if we've reached the target time
+        print(f"\n[DEBUG][POLICY] === Executing policy at time {self.current_time} ===")
+        print(f"[DEBUG][POLICY] Policy state: is_unlimited={self.policy.is_unlimited}, is_relative={self.policy.is_relative}, base_time={self.policy.base_time}, target_time={self.policy.target_time}")
         target_time = self.policy.get_target_time(self.current_time)
+        print(f"[DEBUG][POLICY] Policy get_target_time(current_time={self.current_time}) -> {target_time}")
         if target_time is not None and self.current_time >= target_time:
-            print(f"[DEBUG] Reached target time {target_time}, stopping policy execution")
+            print(f"[DEBUG][POLICY] Reached target time {target_time}, stopping policy execution at current_time {self.current_time}")
             return False
 
         # Check if we have any active cards
@@ -779,5 +794,20 @@ class GameState:
 
     def run_policy(self) -> None:
         """Run the policy until it stops"""
-        while self.execute_policy():
-            pass 
+        iteration = 0
+        while True:
+            print(f"[DEBUG][POLICY] run_policy loop iteration {iteration}, current_time={self.current_time}")
+            should_continue = self.execute_policy()
+            print(f"[DEBUG][POLICY] run_policy loop iteration {iteration} result: should_continue={should_continue}, current_time={self.current_time}")
+            iteration += 1
+            if not should_continue:
+                print(f"[DEBUG][POLICY] run_policy exiting at iteration {iteration}, current_time={self.current_time}")
+                break 
+
+def save_callback(game_state, message=""):
+    try:
+        print(f"[DEBUG][CALLBACK] save_callback called with message: {message}")
+        print(f"[DEBUG][CALLBACK] save_callback: state_manager id={{id(state_manager)}}, game_state id={{id(game_state)}}")
+        state_manager.save_state(game_state, message=message or "Policy action")
+    except Exception as e:
+        print(f"[DEBUG][CALLBACK] save_callback exception: {e}") 

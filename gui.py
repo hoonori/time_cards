@@ -791,6 +791,14 @@ class PolicyPanel(QGroupBox):
             QMessageBox.warning(self, "Error", "Please specify a target time")
             return
 
+        # Register save_callback before running policy (clear previous to avoid duplicates)
+        self.game_window.game._on_action_callbacks = []
+        def save_callback(game_state, message=""):
+            print(f"[DEBUG][CALLBACK] save_callback called with message: {message}")
+            print(f"[DEBUG][CALLBACK] save_callback: state_manager id={id(self.game_window.state_manager)}, game_state id={id(game_state)}")
+            self.game_window.state_manager.save_state(game_state, message=message or "Policy action")
+        self.game_window.game.register_on_action_callback(save_callback)
+
         try:
             # 현재 게임 시간 전달
             self.game_window.game.policy.set_target_time(time_str, self.game_window.game.current_time)
